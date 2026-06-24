@@ -79,7 +79,6 @@ export function JudgeAll({
         functionName: "judgeAll",
         args: [bountyId, llmInput],
         chainId: ritualChain.id,
-        gas: 500_000n,
       });
     } catch (e) {
       setGathering(false);

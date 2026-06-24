@@ -62,7 +62,6 @@ export function FinalizeWinner({
         functionName: "finalizeWinner",
         args: [bountyId, BigInt(idxNum)],
         chainId: ritualChain.id,
-        gas: 200_000n,
       });
     } catch {
       /* surfaced via tx.state */
