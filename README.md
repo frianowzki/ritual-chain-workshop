@@ -174,7 +174,7 @@ Each component serves a purpose:
 | 9 | Submission cap | ✅ | `MAX_SUBMISSIONS = 10` |
 | 10 | Answer length cap | ✅ | `MAX_ANSWER_LENGTH = 2000` |
 | 11 | Zero-address bounty | ✅ | `owner != address(0)` check |
-|| 12 | Winner default | ✅ | `type(uint256).max` (unreachable index) |
+| 12 | Winner default | ✅ | `type(uint256).max` (unreachable index) |
 | 13 | Timestamp handling | ✅ | `block.timestamp` in ms on Ritual Chain — frontend sends ms |
 
 ### ⚠️ Ritual Chain: `block.timestamp` is Milliseconds
