@@ -174,7 +174,28 @@ Each component serves a purpose:
 | 9 | Submission cap | ✅ | `MAX_SUBMISSIONS = 10` |
 | 10 | Answer length cap | ✅ | `MAX_ANSWER_LENGTH = 2000` |
 | 11 | Zero-address bounty | ✅ | `owner != address(0)` check |
-| 12 | Winner default | ✅ | `type(uint256).max` (unreachable index) |
+|| 12 | Winner default | ✅ | `type(uint256).max` (unreachable index) |
+| 13 | Timestamp handling | ✅ | `block.timestamp` in ms on Ritual Chain — frontend sends ms |
+
+### ⚠️ Ritual Chain: `block.timestamp` is Milliseconds
+
+Unlike standard EVM chains (where `block.timestamp` is seconds), **Ritual Chain returns `block.timestamp` in milliseconds**. This affects all deadline comparisons:
+
+```solidity
+// Both sides are in milliseconds — comparison works correctly
+require(commitDeadline > block.timestamp, "commit deadline must be future");
+```
+
+The frontend must send millisecond timestamps:
+
+```typescript
+// ✅ Correct — send ms directly
+const commitTs = BigInt(new Date(y, m-1, d, h, min).getTime());
+
+// ❌ Wrong — this divides by 1000, sending seconds
+const commitTs = BigInt(Math.floor(commitMs / 1000));
+```
+
 
 ---
 
