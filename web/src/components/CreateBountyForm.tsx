@@ -64,6 +64,7 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
     const revealMs = new Date(revealDeadline).getTime();
     if (!Number.isFinite(commitMs) || !Number.isFinite(revealMs)) return "Invalid deadline.";
     if (revealMs <= commitMs) return "Reveal deadline must be after commit deadline.";
+    if (commitMs <= Date.now()) return "Commit deadline must be in the future.";
     if (reward !== "") {
       try { parseEther(reward); } catch { return "Reward must be a valid number."; }
     }
