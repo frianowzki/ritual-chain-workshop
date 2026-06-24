@@ -29,6 +29,14 @@ function defaultDatetime(offsetHours: number): string {
   )}:${pad(d.getMinutes())}`;
 }
 
+/** Parse datetime-local value as local time (never UTC). */
+function parseLocalDatetime(value: string): number {
+  const [datePart, timePart] = value.split("T");
+  const [y, m, d] = datePart.split("-").map(Number);
+  const [h, min] = timePart.split(":").map(Number);
+  return new Date(y, m - 1, d, h, min).getTime();
+}
+
 export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint) => void }) {
   const { isConnected } = useAccount();
   const [title, setTitle] = useState("");
@@ -61,8 +69,8 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
     if (!rubric.trim()) return "Rubric is required.";
     if (!commitDeadline) return "Pick a commit deadline.";
     if (!revealDeadline) return "Pick a reveal deadline.";
-    const commitMs = new Date(commitDeadline).getTime();
-    const revealMs = new Date(revealDeadline).getTime();
+    const commitMs = parseLocalDatetime(commitDeadline);
+    const revealMs = parseLocalDatetime(revealDeadline);
     if (!Number.isFinite(commitMs) || !Number.isFinite(revealMs)) return "Invalid deadline.";
     if (commitMs <= Date.now()) return "Commit deadline must be in the future.";
     if (revealMs <= commitMs) return "Reveal deadline must be after commit deadline.";
@@ -86,8 +94,8 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
       return;
     }
 
-    const commitMs = new Date(commitDeadline).getTime();
-    const revealMs = new Date(revealDeadline).getTime();
+    const commitMs = parseLocalDatetime(commitDeadline);
+    const revealMs = parseLocalDatetime(revealDeadline);
     const commitTs = BigInt(Math.floor(commitMs / 1000));
     const revealTs = BigInt(Math.floor(revealMs / 1000));
     const value = reward.trim() === "" ? 0n : parseEther(reward.trim());
