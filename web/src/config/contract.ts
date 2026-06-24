@@ -1,4 +1,5 @@
 import type { Address } from "viem";
+import aiJudgeAbi from "@/abi/AIJudge";
 
 /**
  * Central place for the on-chain config the UI needs.
@@ -6,16 +7,18 @@ import type { Address } from "viem";
  * pointed at different Ritual deployments without code changes.
  */
 
-const rawAddress = process.env.NEXT_PUBLIC_CR_CONTRACT_ADDRESS?.trim();
+export const aiJudgeAbiConst = aiJudgeAbi;
 
-/** Deployed CommitRevealBounty address, or `undefined` if not configured. */
-export const crContractAddress: Address | undefined =
+const rawAddress = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS?.trim();
+
+/** Deployed SimpleAIBountyJudge address, or `undefined` if not configured. */
+export const contractAddress: Address | undefined =
   rawAddress && /^0x[0-9a-fA-F]{40}$/.test(rawAddress)
     ? (rawAddress as Address)
     : undefined;
 
 /** True when the contract address env var is present and well-formed. */
-export const isCRContractConfigured = Boolean(crContractAddress);
+export const isContractConfigured = Boolean(contractAddress);
 
 /** Ritual LLM executor / callback address used when encoding `judgeAll` input. */
 export const executorAddress: Address =
@@ -25,6 +28,14 @@ export const executorAddress: Address =
 export const ritualChainId = Number(
   process.env.NEXT_PUBLIC_RITUAL_CHAIN_ID ?? "1979",
 );
+
+// Commit-Reveal Bounty contract (deployed separately)
+const rawCRAddress = process.env.NEXT_PUBLIC_CR_CONTRACT_ADDRESS?.trim();
+export const crContractAddress: Address | undefined =
+  rawCRAddress && /^0x[0-9a-fA-F]{40}$/.test(rawCRAddress)
+    ? (rawCRAddress as Address)
+    : undefined;
+export const isCRContractConfigured = Boolean(crContractAddress);
 
 export const ritualRpcUrl =
   process.env.NEXT_PUBLIC_RITUAL_RPC_URL ?? "https://rpc.ritualfoundation.org";
