@@ -12,6 +12,7 @@ import { RevealAnswer } from "@/components/RevealAnswer";
 import { JudgeAll } from "@/components/JudgeAll";
 import { FinalizeWinner } from "@/components/FinalizeWinner";
 import { AIReviewDisplay } from "@/components/AIReviewDisplay";
+import { Countdown } from "@/components/Countdown";
 import { SubmissionsList } from "@/components/SubmissionsList";
 import { Card, CardBody, Notice, Spinner, Badge } from "@/components/ui";
 
@@ -63,6 +64,20 @@ export function BountyView({ bountyId }: { bountyId: bigint }) {
         <span className="text-xs text-zinc-500">
           {bounty.submissionCount.toString()} commitment(s) submitted
         </span>
+      </div>
+
+      {/* Live countdown timers */}
+      <div className="flex flex-wrap gap-4">
+        <Countdown
+          deadline={bounty.commitDeadline}
+          label="Commit phase"
+          tone={status === "commit" ? "green" : "zinc"}
+        />
+        <Countdown
+          deadline={bounty.revealDeadline}
+          label="Reveal phase"
+          tone={status === "reveal" ? "amber" : "zinc"}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
