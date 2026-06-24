@@ -88,6 +88,5 @@ export function canCommit(b: Bounty, nowSeconds = Date.now() / 1000): boolean {
 /** Can a participant reveal their answer? */
 export function canReveal(b: Bounty, nowSeconds = Date.now() / 1000): boolean {
   const now = BigInt(Math.floor(nowSeconds));
-  return !b.judged && !b.finalized &&
-    now > b.commitDeadline && now <= b.revealDeadline;
+  return !b.judged && !b.finalized && now <= b.revealDeadline;
 }

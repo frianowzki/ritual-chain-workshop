@@ -100,7 +100,7 @@ describe("AIJudge — Commit-Reveal", async function () {
   });
 
   describe("revealAnswer", function () {
-    it("reveals with correct salt and answer", async function () {
+    it("can commit and reveal immediately", async function () {
       const { judge, alice } = await createBounty();
       const answer = "The answer is 42";
       const salt = keccak256(toBytes("my-secret-salt"));
@@ -110,8 +110,7 @@ describe("AIJudge — Commit-Reveal", async function () {
         account: alice.account,
       });
 
-      await networkHelpers.time.increase(COMMIT_DURATION + 1);
-
+      // Reveal immediately — no need to wait for commit deadline
       await judge.write.revealAnswer([1n, answer, salt], {
         account: alice.account,
       });
@@ -128,8 +127,6 @@ describe("AIJudge — Commit-Reveal", async function () {
       await judge.write.submitCommitment([1n, commitment], {
         account: alice.account,
       });
-
-      await networkHelpers.time.increase(COMMIT_DURATION + 1);
 
       const wrongSalt = keccak256(toBytes("wrong-salt"));
       await assert.rejects(
@@ -151,8 +148,6 @@ describe("AIJudge — Commit-Reveal", async function () {
         account: alice.account,
       });
 
-      await networkHelpers.time.increase(COMMIT_DURATION + 1);
-
       await assert.rejects(
         judge.write.revealAnswer([1n, "wrong", salt], {
           account: alice.account,
@@ -173,8 +168,6 @@ describe("AIJudge — Commit-Reveal", async function () {
         account: alice.account,
       });
 
-      await networkHelpers.time.increase(COMMIT_DURATION + 1);
-
       await judge.write.revealAnswer([1n, answer, salt], {
         account: alice.account,
       });
@@ -189,7 +182,7 @@ describe("AIJudge — Commit-Reveal", async function () {
       );
     });
 
-    it("rejects before commit deadline", async function () {
+    it("rejects after reveal deadline", async function () {
       const { judge, alice } = await createBounty();
       const salt = keccak256(toBytes("s"));
       const commitment = makeCommitment("a", salt, alice.account.address, 1n);
@@ -197,12 +190,14 @@ describe("AIJudge — Commit-Reveal", async function () {
         account: alice.account,
       });
 
+      await networkHelpers.time.increase(REVEAL_DURATION + 1);
+
       await assert.rejects(
         judge.write.revealAnswer([1n, "a", salt], {
           account: alice.account,
         }),
         (err: Error) => {
-          assert.ok(err.message.includes("commit phase still active"));
+          assert.ok(err.message.includes("reveal phase closed"));
           return true;
         }
       );

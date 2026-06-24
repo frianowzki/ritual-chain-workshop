@@ -197,10 +197,6 @@ contract AIJudge is PrecompileConsumer {
         Bounty storage bounty = bounties[bountyId];
 
         require(
-            block.timestamp > bounty.commitDeadline,
-            "commit phase still active"
-        );
-        require(
             block.timestamp <= bounty.revealDeadline,
             "reveal phase closed"
         );
