@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hive Agent Summoner</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0a0a; color: #e4e4e7; font-family: system-ui, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .card { background: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 32px; max-width: 480px; width: 100%; }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .sub { color: #71717a; font-size: 13px; margin-bottom: 24px; }
+    label { display: block; font-size: 13px; color: #a1a1aa; margin-bottom: 6px; margin-top: 16px; }
+    input, textarea { width: 100%; background: #09090b; border: 1px solid #27272a; border-radius: 8px; padding: 10px 12px; color: #e4e4e7; font-size: 14px; outline: none; }
+    input:focus, textarea:focus { border-color: #8b5cf6; }
+    textarea { resize: vertical; min-height: 80px; font-family: monospace; font-size: 12px; }
+    button { width: 100%; margin-top: 24px; padding: 12px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    #connectBtn { background: #8b5cf6; color: white; }
+    #connectBtn:hover { background: #7c3aed; }
+    #summonBtn { background: #22c55e; color: #000; display: none; }
+    #summonBtn:hover { background: #16a34a; }
+    #summonBtn:disabled { background: #3f3f46; color: #71717a; cursor: not-allowed; }
+    .status { margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 13px; display: none; word-break: break-all; }
+    .status.info { display: block; background: #1e1b4b; border: 1px solid #312e81; color: #a5b4fc; }
+    .status.success { display: block; background: #052e16; border: 1px solid #166534; color: #86efac; }
+    .status.error { display: block; background: #450a0a; border: 1px solid #7f1d1d; color: #fca5a5; }
+    .wallet-info { display: none; margin-bottom: 16px; padding: 10px; background: #09090b; border-radius: 8px; font-size: 12px; font-family: monospace; }
+    a { color: #8b5cf6; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🐝 Hive Agent Summoner</h1>
+    <p class="sub">Deploy a sovereign agent via HiveAgentFactory on Ritual Chain</p>
+
+    <div class="wallet-info" id="walletInfo">
+      <div>Connected: <span id="walletAddr">-</span></div>
+      <div>Balance: <span id="walletBal">-</span> RITUAL</div>
+    </div>
+
+    <label>Agent Name</label>
+    <input id="name" value="FrianBot" maxlength="32" />
+
+    <label>Sector</label>
+    <input id="sector" value="defi" maxlength="32" />
+
+    <label>Soul (identity & purpose)</label>
+    <textarea id="soul">Autonomous DeFi agent. Maximize yield, minimize risk. Obey governor limits. Never exceed per-tx or daily caps.</textarea>
+
+    <label>Wake Delay (blocks between wakeups)</label>
+    <input id="wakeDelay" type="number" value="100" min="1" max="100000" />
+
+    <button id="connectBtn" onclick="connect()">Connect Rabby Wallet</button>
+    <button id="summonBtn" onclick="summon()">🐝 Summon Agent</button>
+
+    <div class="status" id="status"></div>
+  </div>
+
+  <script>
+    const FACTORY = '0x0241cfB0a6620f57988C75Cd06dA2914b21463c6';
+    const CHAIN_ID = 1979;
+
+    const FACTORY_ABI = [
+      'function deploymentFee() view returns (uint256)',
+      'function freeTierEnabled() view returns (bool)',
+      'function summonAgent(string name, string sector, string soul, uint32 wakeDelay) external payable returns (address agentAddr, address governorAddr)'
+    ];
+
+    let provider, signer, factory, fee = 0n;
+
+    function status(msg, type = 'info') {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status ' + type;
+    }
+
+    async function connect() {
+      if (!window.ethereum) {
+        status('No wallet found. Install Rabby or MetaMask.', 'error');
+        return;
+      }
+
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+
+        if (parseInt(chainId, 16) !== CHAIN_ID) {
+          try {
+            await window.ethereum.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x' + CHAIN_ID.toString(16) }]
+            });
+          } catch (e) {
+            // Try adding the chain
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x' + CHAIN_ID.toString(16),
+                chainName: 'Ritual Chain',
+                nativeCurrency: { name: 'Ritual', symbol: 'RITUAL', decimals: 18 },
+                rpcUrls: ['https://rpc.ritualfoundation.org'],
+                blockExplorerUrls: ['https://explorer.ritualfoundation.org']
+              }]
+            });
+          }
+        }
+
+        // Use ethers from CDN
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        const addr = await signer.getAddress();
+        const bal = await provider.getBalance(addr);
+
+        document.getElementById('walletAddr').textContent = addr.slice(0, 6) + '...' + addr.slice(-4);
+        document.getElementById('walletBal').textContent = (Number(bal) / 1e18).toFixed(4);
+        document.getElementById('walletInfo').style.display = 'block';
+        document.getElementById('connectBtn').style.display = 'none';
+        document.getElementById('summonBtn').style.display = 'block';
+
+        factory = new ethers.Contract(FACTORY, FACTORY_ABI, signer);
+
+        try {
+          fee = await factory.deploymentFee();
+          status(`Connected! Deployment fee: ${ethers.formatEther(fee)} RITUAL`, 'info');
+        } catch {
+          fee = ethers.parseEther('0.01');
+          status(`Connected! (couldn't read fee, assuming 0.01 RITUAL)`, 'info');
+        }
+      } catch (e) {
+        status('Connection failed: ' + e.message, 'error');
+      }
+    }
+
+    async function summon() {
+      const name = document.getElementById('name').value.trim();
+      const sector = document.getElementById('sector').value.trim();
+      const soul = document.getElementById('soul').value.trim();
+      const wakeDelay = parseInt(document.getElementById('wakeDelay').value) || 100;
+
+      if (!name || !sector || !soul) {
+        status('Fill in all fields.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('summonBtn');
+      btn.disabled = true;
+      btn.textContent = 'Summoning...';
+
+      try {
+        status('Sending transaction...', 'info');
+        const tx = await factory.summonAgent(name, sector, soul, wakeDelay, { value: fee });
+        status(`Tx sent: ${tx.hash}\nWaiting for confirmation...`, 'info');
+
+        const receipt = await tx.wait();
+        status(`✅ Agent summoned!\n\nTx: ${receipt.hash}\nBlock: ${receipt.blockNumber}\n\nView: https://explorer.ritualfoundation.org/tx/${receipt.hash}`, 'success');
+      } catch (e) {
+        const msg = e.reason || e.message || String(e);
+        status('Failed: ' + msg.split('\n')[0], 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🐝 Summon Agent';
+      }
+    }
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.9.0/ethers.umd.min.js"></script>
+</body>
+</html>
