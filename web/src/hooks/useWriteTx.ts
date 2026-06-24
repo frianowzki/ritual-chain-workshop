@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt, usePublicClient } from "wagmi";
 import type { Abi, Address, TransactionReceipt } from "viem";
 
 /**
@@ -50,6 +50,10 @@ function describeError(err: unknown): string {
  *
  * `run(params)` returns the tx hash (or throws). `onConfirmed(receipt)` fires
  * once when the receipt lands — handy for refetching reads or reading logs.
+ *
+ * NOTE: Ritual Chain RPC does not support EIP-1559 (type 2) transactions.
+ * We always inject `gasPrice` (legacy type 0) to avoid "transaction type not
+ * supported" errors.
  */
 export function useWriteTx(onConfirmed?: (receipt: TransactionReceipt) => void) {
   const {
@@ -58,6 +62,8 @@ export function useWriteTx(onConfirmed?: (receipt: TransactionReceipt) => void) 
     isPending: isWalletPending,
     mutateAsync: writeContractAsync,
   } = useWriteContract();
+
+  const publicClient = usePublicClient();
 
   const {
     data: receipt,
@@ -101,7 +107,22 @@ export function useWriteTx(onConfirmed?: (receipt: TransactionReceipt) => void) 
       notifiedRef.current = false;
       setSubmitting(true);
       try {
-        return await writeContractAsync(params as WagmiWriteParams);
+        // Inject gasPrice (legacy tx) if not already provided.
+        // Ritual Chain rejects EIP-1559 (type 2) transactions with
+        // "transaction type not supported". Setting gasPrice forces viem
+        // to build a legacy (type 0) transaction instead.
+        let finalParams: WriteParams = { ...params };
+        if (!finalParams.gasPrice && !finalParams.maxFeePerGas) {
+          try {
+            const gasPrice = await publicClient!.getGasPrice();
+            finalParams.gasPrice = gasPrice;
+          } catch {
+            // Fallback: 10 gwei — same as hardhat config
+            finalParams.gasPrice = 10_000_000_000n;
+          }
+        }
+
+        return await writeContractAsync(finalParams as WagmiWriteParams);
       } catch (e) {
         setSubmitError(describeError(e));
         throw e;
@@ -109,7 +130,7 @@ export function useWriteTx(onConfirmed?: (receipt: TransactionReceipt) => void) 
         setSubmitting(false);
       }
     },
-    [writeContractAsync],
+    [writeContractAsync, publicClient],
   );
 
   const reset = useCallback(() => {

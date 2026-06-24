@@ -1,15 +1,18 @@
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
 import { configVariable, defineConfig } from "hardhat/config";
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 export default defineConfig({
   plugins: [hardhatToolboxViemPlugin],
   solidity: {
     profiles: {
       default: {
-        version: "0.8.24",
+        version: "0.8.28",
       },
       production: {
-        version: "0.8.24",
+        version: "0.8.28",
         settings: {
           optimizer: {
             enabled: true,
@@ -36,10 +39,9 @@ export default defineConfig({
     },
     ritual: {
       type: "http",
-      chainType: "l1",
-      url: "https://rpc.ritualfoundation.org",
-      chainId: 1979,
-      accounts: [configVariable("DEPLOYER_PRIVATE_KEY")],
-    },
+      url: process.env.RITUAL_RPC_URL || "https://rpc.ritualfoundation.org",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      gasPrice: 10000000000,
+    }
   },
 });
