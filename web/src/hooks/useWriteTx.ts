@@ -1,14 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
-import type { Abi, Address, TransactionReceipt } from "viem";
+import { useWaitForTransactionReceipt, useWalletClient } from "wagmi";
+import {
+  type Abi,
+  type Address,
+  type TransactionReceipt,
+  type WalletClient,
+  encodeFunctionData,
+  publicActions,
+} from "viem";
 
-/**
- * Structural shape of a contract write. Kept deliberately simple: wagmi's exact
- * mutate-params type is a large discriminated union that infers poorly when
- * forwarded through a wrapper, so we accept this and cast once at the boundary.
- */
 type WriteParams = {
   address: Address;
   abi: Abi | readonly unknown[];
@@ -17,22 +19,17 @@ type WriteParams = {
   value?: bigint;
   chainId?: number;
   gas?: bigint;
-  gasPrice?: bigint;
-  maxFeePerGas?: bigint;
 };
-
-type WagmiWriteParams = Parameters<ReturnType<typeof useWriteContract>["writeContractAsync"]>[0];
 
 export type TxState =
   | "idle"
-  | "wallet" // waiting for the user to confirm in their wallet
-  | "pending" // submitted, waiting for on-chain confirmation
+  | "wallet"
+  | "pending"
   | "confirmed"
   | "failed";
 
 export type WriteTx = ReturnType<typeof useWriteTx>;
 
-/** Turn an unknown thrown value into a short, human-friendly message. */
 function describeError(err: unknown): string {
   if (!err) return "Transaction failed.";
   const anyErr = err as { shortMessage?: string; message?: string };
@@ -40,27 +37,23 @@ function describeError(err: unknown): string {
   if (/user rejected|denied|rejected the request/i.test(msg)) {
     return "Request rejected in wallet.";
   }
-  // Keep it to the first line so we don't dump a stack into the UI.
   return msg.split("\n")[0];
 }
 
 /**
- * Wraps wagmi's write + receipt hooks into a single clear state machine:
- * idle → wallet → pending → confirmed | failed.
+ * Ritual Chain returns baseFeePerGas in block headers, which causes wallets
+ * (MetaMask, Rabby) to auto-apply EIP-1559 (type 2) — but the RPC rejects
+ * type 2 with "transaction type not supported".
  *
- * `run(params)` returns the tx hash (or throws). `onConfirmed(receipt)` fires
- * once when the receipt lands — handy for refetching reads or reading logs.
- *
- * NOTE: EIP-1559 → legacy tx conversion is handled at the transport level
- * in wagmi.ts (injectedTransport intercepts eth_sendTransaction).
+ * Fix: intercept the wallet client's `request` method and rewrite every
+ * `eth_sendTransaction` call to strip EIP-1559 fields and force legacy
+ * (type 0x0) + gasPrice. This happens AFTER viem/wagmi format the tx and
+ * BEFORE it reaches the wallet provider (Rabby/MetaMask).
  */
 export function useWriteTx(onConfirmed?: (receipt: TransactionReceipt) => void) {
-  const {
-    data: hash,
-    reset: resetWrite,
-    isPending: isWalletPending,
-    mutateAsync: writeContractAsync,
-  } = useWriteContract();
+  const { data: walletClient } = useWalletClient();
+
+  const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
 
   const {
     data: receipt,
@@ -70,14 +63,10 @@ export function useWriteTx(onConfirmed?: (receipt: TransactionReceipt) => void) 
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
 
-  // Local error from the submit step. The receipt error is derived (below),
-  // so we never copy it into state from an effect.
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const notifiedRef = useRef(false);
 
-  // Fire onConfirmed exactly once per confirmation. Calling a callback (not
-  // setState) inside the effect keeps render pure and lint-clean.
   useEffect(() => {
     if (isConfirmed && receipt && !notifiedRef.current) {
       notifiedRef.current = true;
@@ -94,17 +83,141 @@ export function useWriteTx(onConfirmed?: (receipt: TransactionReceipt) => void) 
       ? "confirmed"
       : isConfirming
         ? "pending"
-        : submitting || isWalletPending
+        : submitting
           ? "wallet"
           : "idle";
 
   const run = useCallback(
     async (params: WriteParams) => {
+      if (!walletClient) {
+        setSubmitError("Wallet not connected.");
+        throw new Error("Wallet not connected");
+      }
+
       setSubmitError(null);
       notifiedRef.current = false;
       setSubmitting(true);
+
       try {
-        return await writeContractAsync(params as WagmiWriteParams);
+        const data = encodeFunctionData({
+          abi: params.abi as any,
+          functionName: params.functionName,
+          args: params.args as any,
+        });
+
+        // Fetch gasPrice from RPC
+        let gasPrice: `0x${string}`;
+        try {
+          const rpcUrl = walletClient.chain?.rpcUrls.default.http[0];
+          const resp = await fetch(rpcUrl!, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "eth_gasPrice",
+              params: [],
+              id: 1,
+            }),
+          });
+          const json = await resp.json();
+          gasPrice = json.result;
+        } catch {
+          gasPrice = "0x2540be400"; // 10 gwei
+        }
+
+        // Estimate gas via RPC
+        let gasEstimate: `0x${string}`;
+        try {
+          const rpcUrl = walletClient.chain?.rpcUrls.default.http[0];
+          const resp = await fetch(rpcUrl!, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "eth_estimateGas",
+              params: [
+                {
+                  from: walletClient.account?.address,
+                  to: params.address,
+                  data,
+                  value: params.value ? `0x${params.value.toString(16)}` : "0x0",
+                },
+              ],
+              id: 2,
+            }),
+          });
+          const json = await resp.json();
+          gasEstimate = json.result;
+        } catch {
+          gasEstimate = "0x493e0"; // 300k gas fallback
+        }
+
+        // Get nonce
+        let nonce: `0x${string}`;
+        try {
+          const rpcUrl = walletClient.chain?.rpcUrls.default.http[0];
+          const resp = await fetch(rpcUrl!, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jsonrpc: "2.0",
+              method: "eth_getTransactionCount",
+              params: [walletClient.account?.address, "pending"],
+              id: 3,
+            }),
+          });
+          const json = await resp.json();
+          nonce = json.result;
+        } catch {
+          nonce = "0x0";
+        }
+
+        // Build raw legacy tx params — type 0x0, gasPrice, no EIP-1559 fields
+        const legacyTx = {
+          from: walletClient.account?.address,
+          to: params.address,
+          data,
+          value: params.value ? `0x${params.value.toString(16)}` : "0x0",
+          gasPrice,
+          gas: gasEstimate,
+          nonce,
+          type: "0x0" as const,
+          chainId: `0x${(walletClient.chain?.id ?? 1979).toString(16)}`,
+        };
+
+        // Intercept the wallet client's request to ensure legacy params
+        const originalRequest = walletClient.request.bind(walletClient);
+        const interceptedRequest = async (args: any): Promise<any> => {
+          if (
+            args.method === "eth_sendTransaction" ||
+            args.method === "wallet_sendTransaction"
+          ) {
+            // Force legacy: override whatever viem/wagmi formatted
+            return originalRequest({
+              ...args,
+              params: [legacyTx],
+            });
+          }
+          return originalRequest(args);
+        };
+
+        // Create a patched wallet client with our intercepted request
+        const patchedClient = Object.create(walletClient);
+        patchedClient.request = interceptedRequest;
+
+        // Send via the patched client
+        const txHash = await patchedClient.sendTransaction({
+          to: params.address,
+          data,
+          value: params.value ?? 0n,
+          gasPrice: BigInt(gasPrice),
+          gas: BigInt(gasEstimate),
+          nonce: BigInt(nonce),
+          type: "legacy" as any,
+        });
+
+        setHash(txHash);
+        return txHash;
       } catch (e) {
         setSubmitError(describeError(e));
         throw e;
@@ -112,15 +225,15 @@ export function useWriteTx(onConfirmed?: (receipt: TransactionReceipt) => void) 
         setSubmitting(false);
       }
     },
-    [writeContractAsync],
+    [walletClient],
   );
 
   const reset = useCallback(() => {
-    resetWrite();
+    setHash(undefined);
     setSubmitError(null);
     notifiedRef.current = false;
     setSubmitting(false);
-  }, [resetWrite]);
+  }, []);
 
   return {
     run,
