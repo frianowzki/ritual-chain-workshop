@@ -25,7 +25,7 @@ export function SubmissionsList({
     <Card>
       <CardHeader
         title="Submissions"
-        subtitle="All submissions are judged together after the deadline."
+        subtitle="Commitments are hidden until revealed. Only revealed answers are judged."
         action={<Badge tone="zinc">{count}</Badge>}
       />
       <CardBody className="space-y-3">
@@ -70,8 +70,11 @@ function SubmissionRow({
     query: { enabled: !!contractAddress },
   });
 
-  const submitter = data?.[0];
-  const answer = data?.[1];
+  // getSubmission returns (submitter, commitment, revealed, answer)
+  const submitter = data?.[0] as `0x${string}` | undefined;
+  const commitment = data?.[1] as `0x${string}` | undefined;
+  const revealed = data?.[2] as boolean | undefined;
+  const answer = data?.[3] as string | undefined;
 
   return (
     <div
@@ -91,6 +94,11 @@ function SubmissionRow({
           </span>
         </div>
         <div className="flex items-center gap-1.5">
+          {revealed !== undefined && (
+            <Badge tone={revealed ? "green" : "amber"}>
+              {revealed ? "Revealed" : "Hidden"}
+            </Badge>
+          )}
           {ranking ? <Badge tone="zinc">score {ranking.score}</Badge> : null}
           {isWinner ? (
             <Badge tone="green">Winner</Badge>
@@ -100,9 +108,16 @@ function SubmissionRow({
         </div>
       </div>
 
-      <p className="mt-2 whitespace-pre-wrap break-words text-sm text-zinc-200">
-        {answer ?? (isLoading ? "" : "-")}
-      </p>
+      {/* Show answer only if revealed */}
+      {revealed ? (
+        <p className="mt-2 whitespace-pre-wrap break-words text-sm text-zinc-200">
+          {answer ?? ""}
+        </p>
+      ) : commitment ? (
+        <p className="mt-2 font-mono text-xs text-zinc-500 break-all">
+          Commitment: {commitment}
+        </p>
+      ) : null}
 
       {ranking?.reason ? (
         <p className="mt-2 border-t border-white/5 pt-2 text-xs text-zinc-400">

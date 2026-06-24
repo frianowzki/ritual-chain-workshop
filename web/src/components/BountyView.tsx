@@ -4,22 +4,22 @@ import { useCallback } from "react";
 import { useAccount } from "wagmi";
 import { useBounty } from "@/hooks/useBounty";
 import { isAddressEqual } from "@/lib/format";
+import { getBountyStatus, STATUS_META } from "@/lib/bounty";
 import { decodeAiReview } from "@/lib/aiReview";
 import { BountyDetail } from "@/components/BountyDetail";
-import { SubmitAnswer } from "@/components/SubmitAnswer";
+import { SubmitCommitment } from "@/components/SubmitCommitment";
+import { RevealAnswer } from "@/components/RevealAnswer";
 import { JudgeAll } from "@/components/JudgeAll";
 import { FinalizeWinner } from "@/components/FinalizeWinner";
 import { AIReviewDisplay } from "@/components/AIReviewDisplay";
 import { SubmissionsList } from "@/components/SubmissionsList";
-import { Card, CardBody, Notice, Spinner } from "@/components/ui";
+import { Card, CardBody, Notice, Spinner, Badge } from "@/components/ui";
 
 export function BountyView({ bountyId }: { bountyId: bigint }) {
   const { address } = useAccount();
   const { bounty, isLoading, isError, refetch } = useBounty(bountyId);
 
-  const reload = useCallback(() => {
-    void refetch();
-  }, [refetch]);
+  const reload = useCallback(() => { void refetch(); }, [refetch]);
 
   if (isLoading) {
     return (
@@ -42,7 +42,6 @@ export function BountyView({ bountyId }: { bountyId: bigint }) {
     );
   }
 
-  // An owner of address(0) means the bounty doesn't exist yet.
   if (/^0x0+$/.test(bounty.owner)) {
     return (
       <Notice tone="amber">
@@ -52,43 +51,38 @@ export function BountyView({ bountyId }: { bountyId: bigint }) {
   }
 
   const isOwner = isAddressEqual(address, bounty.owner);
+  const status = getBountyStatus(bounty);
+  const meta = STATUS_META[status];
   const judge = decodeAiReview(bounty.aiReview)?.parsed ?? null;
 
   return (
-    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-      {/* Left column: details + owner/participant actions */}
-      <div className="space-y-4">
-        <BountyDetail bountyId={bountyId} bounty={bounty} isOwner={isOwner} />
-        <SubmitAnswer
-          bountyId={bountyId}
-          bounty={bounty}
-          onSubmitted={reload}
-        />
-        <JudgeAll
-          bountyId={bountyId}
-          bounty={bounty}
-          isOwner={isOwner}
-          onJudged={reload}
-        />
-        <FinalizeWinner
-          bountyId={bountyId}
-          bounty={bounty}
-          isOwner={isOwner}
-          onFinalized={reload}
-        />
+    <div className="space-y-4">
+      {/* Phase indicator */}
+      <div className="flex items-center gap-3">
+        <Badge tone={meta.tone}>{meta.label}</Badge>
+        <span className="text-xs text-zinc-500">
+          {bounty.submissionCount.toString()} commitment(s) submitted
+        </span>
       </div>
 
-      {/* Right column: AI review + submissions */}
-      <div className="space-y-4">
-        {bounty.judged && <AIReviewDisplay aiReview={bounty.aiReview} />}
-        <SubmissionsList
-          bountyId={bountyId}
-          count={Number(bounty.submissionCount)}
-          judge={judge}
-          finalWinner={
-            bounty.finalized ? Number(bounty.winnerIndex) : undefined
-          }
-        />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
+          <BountyDetail bountyId={bountyId} bounty={bounty} isOwner={isOwner} />
+          <SubmitCommitment bountyId={bountyId} bounty={bounty} address={address} onSubmitted={reload} />
+          <RevealAnswer bountyId={bountyId} bounty={bounty} address={address} onRevealed={reload} />
+          <JudgeAll bountyId={bountyId} bounty={bounty} isOwner={isOwner} onJudged={reload} />
+          <FinalizeWinner bountyId={bountyId} bounty={bounty} isOwner={isOwner} onFinalized={reload} />
+        </div>
+
+        <div className="space-y-4">
+          {bounty.judged && <AIReviewDisplay aiReview={bounty.aiReview} />}
+          <SubmissionsList
+            bountyId={bountyId}
+            count={Number(bounty.submissionCount)}
+            judge={judge}
+            finalWinner={bounty.finalized ? Number(bounty.winnerIndex) : undefined}
+          />
+        </div>
       </div>
     </div>
   );

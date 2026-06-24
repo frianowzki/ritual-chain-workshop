@@ -30,14 +30,11 @@ export function JudgeAll({
   const [gathering, setGathering] = useState(false);
   const [gatherError, setGatherError] = useState<string | null>(null);
   const tx = useWriteTx(() => onJudged());
-
-  // Preflight the *connected* wallet's RitualWallet funding (not the bounty
-  // contract) — judgeAll spends prepaid+locked RITUAL via the LLM precompile.
   const walletStatus = useRitualWalletStatus(address);
 
   const count = Number(bounty.submissionCount);
 
-  // Gate per spec: owner only, has submissions, not yet judged.
+  // Gate: owner only, commit phase over, has submissions, not yet judged.
   if (!isOwner || bounty.judged || bounty.finalized || count === 0) {
     return null;
   }
@@ -47,19 +44,26 @@ export function JudgeAll({
     setGatherError(null);
     setGathering(true);
     try {
-      // 1–2. Load every submission for this bounty.
+      // Load all submissions, filter to revealed only.
       const submissions: JudgeSubmission[] = [];
       for (let i = 0; i < count; i++) {
-        const [submitter, answer] = await publicClient.readContract({
+        const [submitter, , revealed, answer] = await publicClient.readContract({
           address: contractAddress,
           abi: aiJudgeAbi,
           functionName: "getSubmission",
           args: [bountyId, BigInt(i)],
         });
-        submissions.push({ index: i, submitter, answer });
+        if (revealed) {
+          submissions.push({ index: submissions.length, submitter, answer });
+        }
       }
 
-      // 3–4. Build the batch judging prompt and encode the Ritual LLM request.
+      if (submissions.length === 0) {
+        setGatherError("No revealed answers to judge yet.");
+        setGathering(false);
+        return;
+      }
+
       const llmInput = buildJudgeAllLlmInput({
         executorAddress,
         title: bounty.title,
@@ -69,7 +73,6 @@ export function JudgeAll({
 
       setGathering(false);
 
-      // 5. Submit it on-chain.
       await tx.run({
         address: contractAddress,
         abi: aiJudgeAbi,
@@ -82,7 +85,7 @@ export function JudgeAll({
       setGatherError(
         (e as { shortMessage?: string; message?: string }).shortMessage ||
           (e as Error).message ||
-          "Failed to gather submissions.",
+          "Failed to gather submissions."
       );
     }
   }
@@ -94,7 +97,7 @@ export function JudgeAll({
     <Card>
       <CardHeader
         title="Judge all submissions"
-        subtitle="Sends one Ritual LLM request ranking every submission."
+        subtitle="Sends one Ritual LLM request ranking every revealed answer."
       />
       <CardBody className="space-y-3">
         <Notice tone="indigo">AI review is advisory. The bounty owner finalizes the winner.</Notice>
@@ -103,15 +106,13 @@ export function JudgeAll({
 
         <Button onClick={handleJudge} disabled={busy || !fundingReady} className="w-full">
           {gathering ? (
-            <>
-              <Spinner /> Gathering {count} submissions…
-            </>
+            <><Spinner /> Gathering revealed answers…</>
           ) : tx.isBusy ? (
             "Judging…"
           ) : !fundingReady ? (
             "Fund RitualWallet to judge"
           ) : (
-            `Judge all (${count})`
+            `Judge all (${count} committed)`
           )}
         </Button>
         {gatherError && <Notice tone="red">{gatherError}</Notice>}

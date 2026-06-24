@@ -6,7 +6,8 @@ export type Bounty = {
   title: string;
   rubric: string;
   reward: bigint;
-  deadline: bigint;
+  commitDeadline: bigint;
+  revealDeadline: bigint;
   judged: boolean;
   finalized: boolean;
   submissionCount: bigint;
@@ -22,6 +23,7 @@ export function parseBounty(
     string,
     bigint,
     bigint,
+    bigint,
     boolean,
     boolean,
     bigint,
@@ -34,7 +36,8 @@ export function parseBounty(
     title,
     rubric,
     reward,
-    deadline,
+    commitDeadline,
+    revealDeadline,
     judged,
     finalized,
     submissionCount,
@@ -46,7 +49,8 @@ export function parseBounty(
     title,
     rubric,
     reward,
-    deadline,
+    commitDeadline,
+    revealDeadline,
     judged,
     finalized,
     submissionCount,
@@ -55,26 +59,35 @@ export function parseBounty(
   };
 }
 
-export type BountyStatus = "open" | "ready" | "judged" | "finalized";
+export type BountyStatus = "commit" | "reveal" | "judged" | "finalized";
 
 export function getBountyStatus(b: Bounty, nowSeconds = Date.now() / 1000): BountyStatus {
   if (b.finalized) return "finalized";
   if (b.judged) return "judged";
-  const deadlinePassed = Number(b.deadline) <= nowSeconds;
-  return deadlinePassed ? "ready" : "open";
+  const now = BigInt(Math.floor(nowSeconds));
+  if (now <= b.commitDeadline) return "commit";
+  return "reveal";
 }
 
 export const STATUS_META: Record<
   BountyStatus,
   { label: string; tone: "green" | "amber" | "indigo" | "zinc" }
 > = {
-  open: { label: "Open", tone: "green" },
-  ready: { label: "Ready for judging", tone: "amber" },
+  commit: { label: "Committing", tone: "green" },
+  reveal: { label: "Revealing", tone: "amber" },
   judged: { label: "Judged", tone: "indigo" },
   finalized: { label: "Finalized", tone: "zinc" },
 };
 
-/** Can a participant still submit an answer? */
-export function canSubmit(b: Bounty, nowSeconds = Date.now() / 1000): boolean {
-  return !b.judged && !b.finalized && Number(b.deadline) > nowSeconds;
+/** Can a participant still submit a commitment? */
+export function canCommit(b: Bounty, nowSeconds = Date.now() / 1000): boolean {
+  const now = BigInt(Math.floor(nowSeconds));
+  return !b.judged && !b.finalized && now <= b.commitDeadline;
+}
+
+/** Can a participant reveal their answer? */
+export function canReveal(b: Bounty, nowSeconds = Date.now() / 1000): boolean {
+  const now = BigInt(Math.floor(nowSeconds));
+  return !b.judged && !b.finalized &&
+    now > b.commitDeadline && now <= b.revealDeadline;
 }
