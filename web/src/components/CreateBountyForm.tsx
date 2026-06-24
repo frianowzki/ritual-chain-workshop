@@ -72,6 +72,7 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
     const commitMs = parseLocalDatetime(commitDeadline);
     const revealMs = parseLocalDatetime(revealDeadline);
     if (!Number.isFinite(commitMs) || !Number.isFinite(revealMs)) return "Invalid deadline.";
+    // Compare in ms — chain uses ms timestamps
     if (commitMs <= Date.now()) return "Commit deadline must be in the future.";
     if (revealMs <= commitMs) return "Reveal deadline must be after commit deadline.";
     if (reward !== "") {
@@ -96,8 +97,9 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
 
     const commitMs = parseLocalDatetime(commitDeadline);
     const revealMs = parseLocalDatetime(revealDeadline);
-    const commitTs = BigInt(Math.floor(commitMs / 1000));
-    const revealTs = BigInt(Math.floor(revealMs / 1000));
+    // Contract uses raw block.timestamp (ms on Ritual Chain) — send ms, not seconds
+    const commitTs = BigInt(commitMs);
+    const revealTs = BigInt(revealMs);
     const value = reward.trim() === "" ? 0n : parseEther(reward.trim());
     setCreatedId(null);
 
@@ -105,8 +107,8 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
       title: title.trim(),
       commitTs: commitTs.toString(),
       revealTs: revealTs.toString(),
-      now: Math.floor(Date.now() / 1000),
-      commitInFuture: commitTs > BigInt(Math.floor(Date.now() / 1000)),
+      now: Date.now(),
+      commitInFuture: commitTs > BigInt(Date.now()),
     });
 
     try {

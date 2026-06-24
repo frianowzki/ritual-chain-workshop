@@ -33,6 +33,8 @@ contract AIJudge is PrecompileConsumer {
 
     uint256 public nextBountyId = 1;
 
+
+
     IRitualWallet wallet =
         IRitualWallet(0x532F0dF0896F353d8C3DD8cc134e8129DA2a3948);
 

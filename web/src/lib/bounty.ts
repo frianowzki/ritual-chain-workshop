@@ -61,10 +61,10 @@ export function parseBounty(
 
 export type BountyStatus = "commit" | "reveal" | "judged" | "finalized";
 
-export function getBountyStatus(b: Bounty, nowSeconds = Date.now() / 1000): BountyStatus {
+export function getBountyStatus(b: Bounty, nowMs = Date.now()): BountyStatus {
   if (b.finalized) return "finalized";
   if (b.judged) return "judged";
-  const now = BigInt(Math.floor(nowSeconds));
+  const now = BigInt(Math.floor(nowMs));
   if (now <= b.commitDeadline) return "commit";
   return "reveal";
 }
@@ -80,14 +80,14 @@ export const STATUS_META: Record<
 };
 
 /** Can a participant still submit a commitment? */
-export function canCommit(b: Bounty, nowSeconds = Date.now() / 1000): boolean {
-  const now = BigInt(Math.floor(nowSeconds));
+export function canCommit(b: Bounty, nowMs = Date.now()): boolean {
+  const now = BigInt(Math.floor(nowMs));
   return !b.judged && !b.finalized && now <= b.commitDeadline;
 }
 
 /** Can a participant reveal their answer? */
-export function canReveal(b: Bounty, nowSeconds = Date.now() / 1000): boolean {
-  const now = BigInt(Math.floor(nowSeconds));
+export function canReveal(b: Bounty, nowMs = Date.now()): boolean {
+  const now = BigInt(Math.floor(nowMs));
   return !b.judged && !b.finalized &&
     now > b.commitDeadline && now <= b.revealDeadline;
 }
