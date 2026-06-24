@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useWaitForTransactionReceipt, useWalletClient } from "wagmi";
-import { type Abi, type Address, type TransactionReceipt, encodeFunctionData } from "viem";
+import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import type { Abi, Address, TransactionReceipt } from "viem";
 
 /**
- * Structural shape of a contract write.
+ * Structural shape of a contract write. Kept deliberately simple: wagmi's exact
+ * mutate-params type is a large discriminated union that infers poorly when
+ * forwarded through a wrapper, so we accept this and cast once at the boundary.
  */
 type WriteParams = {
   address: Address;
@@ -15,12 +17,16 @@ type WriteParams = {
   value?: bigint;
   chainId?: number;
   gas?: bigint;
+  gasPrice?: bigint;
+  maxFeePerGas?: bigint;
 };
+
+type WagmiWriteParams = Parameters<ReturnType<typeof useWriteContract>["writeContractAsync"]>[0];
 
 export type TxState =
   | "idle"
-  | "wallet"
-  | "pending"
+  | "wallet" // waiting for the user to confirm in their wallet
+  | "pending" // submitted, waiting for on-chain confirmation
   | "confirmed"
   | "failed";
 
@@ -34,22 +40,27 @@ function describeError(err: unknown): string {
   if (/user rejected|denied|rejected the request/i.test(msg)) {
     return "Request rejected in wallet.";
   }
+  // Keep it to the first line so we don't dump a stack into the UI.
   return msg.split("\n")[0];
 }
 
 /**
- * Wraps viem walletClient.writeContract + receipt into a clean state machine:
+ * Wraps wagmi's write + receipt hooks into a single clear state machine:
  * idle → wallet → pending → confirmed | failed.
  *
- * Uses viem's walletClient directly (not wagmi's writeContractAsync) to have
- * full control over the transaction type. Ritual Chain RPC only supports legacy
- * (type 0) transactions — EIP-1559 (type 2) is rejected with "transaction type
- * not supported".
+ * `run(params)` returns the tx hash (or throws). `onConfirmed(receipt)` fires
+ * once when the receipt lands — handy for refetching reads or reading logs.
+ *
+ * NOTE: EIP-1559 → legacy tx conversion is handled at the transport level
+ * in wagmi.ts (injectedTransport intercepts eth_sendTransaction).
  */
 export function useWriteTx(onConfirmed?: (receipt: TransactionReceipt) => void) {
-  const { data: walletClient } = useWalletClient();
-
-  const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
+  const {
+    data: hash,
+    reset: resetWrite,
+    isPending: isWalletPending,
+    mutateAsync: writeContractAsync,
+  } = useWriteContract();
 
   const {
     data: receipt,
@@ -59,10 +70,14 @@ export function useWriteTx(onConfirmed?: (receipt: TransactionReceipt) => void) 
     error: receiptError,
   } = useWaitForTransactionReceipt({ hash });
 
+  // Local error from the submit step. The receipt error is derived (below),
+  // so we never copy it into state from an effect.
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const notifiedRef = useRef(false);
 
+  // Fire onConfirmed exactly once per confirmation. Calling a callback (not
+  // setState) inside the effect keeps render pure and lint-clean.
   useEffect(() => {
     if (isConfirmed && receipt && !notifiedRef.current) {
       notifiedRef.current = true;
@@ -79,56 +94,17 @@ export function useWriteTx(onConfirmed?: (receipt: TransactionReceipt) => void) 
       ? "confirmed"
       : isConfirming
         ? "pending"
-        : submitting
+        : submitting || isWalletPending
           ? "wallet"
           : "idle";
 
   const run = useCallback(
     async (params: WriteParams) => {
-      if (!walletClient) {
-        setSubmitError("Wallet not connected.");
-        throw new Error("Wallet not connected");
-      }
-
       setSubmitError(null);
       notifiedRef.current = false;
       setSubmitting(true);
-
       try {
-        // Encode the function call
-        const data = encodeFunctionData({
-          abi: params.abi as any,
-          functionName: params.functionName,
-          args: params.args as any,
-        });
-
-        // Fetch current gas price for legacy tx
-        let gasPrice: bigint;
-        try {
-          const transport = walletClient.transport;
-          const rpcUrl = (transport as any)?.url || (transport as any)?.value?.url;
-          const resp = await fetch(rpcUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ jsonrpc: "2.0", method: "eth_gasPrice", params: [], id: 1 }),
-          });
-          const json = await resp.json();
-          gasPrice = BigInt(json.result);
-        } catch {
-          gasPrice = 10_000_000_000n; // 10 gwei fallback
-        }
-
-        // Send legacy transaction directly — no wagmi fee estimation override
-        const txHash = await walletClient.sendTransaction({
-          to: params.address,
-          data,
-          value: params.value ?? 0n,
-          gasPrice,            // ← forces legacy (type 0) tx
-          ...(params.gas ? { gas: params.gas } : {}),
-        });
-
-        setHash(txHash);
-        return txHash;
+        return await writeContractAsync(params as WagmiWriteParams);
       } catch (e) {
         setSubmitError(describeError(e));
         throw e;
@@ -136,15 +112,15 @@ export function useWriteTx(onConfirmed?: (receipt: TransactionReceipt) => void) 
         setSubmitting(false);
       }
     },
-    [walletClient],
+    [writeContractAsync],
   );
 
   const reset = useCallback(() => {
-    setHash(undefined);
+    resetWrite();
     setSubmitError(null);
     notifiedRef.current = false;
     setSubmitting(false);
-  }, []);
+  }, [resetWrite]);
 
   return {
     run,
