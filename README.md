@@ -115,7 +115,7 @@ keccak256(abi.encodePacked(answer, salt, msg.sender, bountyId)) == storedCommitm
 ```
 
 ✅ Match → answer published on-chain
-❌ Mismatch → rejected (wrong answer, wrong salt, or wrong sender)
+❌ Mismatch → rejected (wrong answer, wrong secret code, or wrong sender)
 
 ### 4️⃣ AI Judges All Revealed Answers
 
@@ -148,7 +148,7 @@ Each component serves a purpose:
 | Component | Purpose | Attack prevented |
 |:---|:---|:---|
 | `answer` | The actual submission | — |
-| `salt` | Random secret | Rainbow tables, brute-force hash reversal |
+| `salt` (secret code) | Random secret | Rainbow tables, brute-force hash reversal |
 | `msg.sender` | Committer's address | Stealing someone else's commitment |
 | `bountyId` | Target bounty | Cross-bounty replay attacks |
 
@@ -214,7 +214,7 @@ const commitTs = BigInt(Math.floor(commitMs / 1000));
 
     revealAnswer
       ✔ reveals after commit deadline
-      ✔ rejects wrong salt
+      ✔ rejects wrong secret code
       ✔ rejects wrong answer
       ✔ rejects double reveal
       ✔ rejects before commit deadline
@@ -303,7 +303,7 @@ ritual-chain-workshop/
 │   │   ├── components/
 │   │   │   ├── CreateBountyForm.tsx       ← Dual-deadline bounty creation
 │   │   │   ├── SubmitCommitment.tsx       ← Hash computation + commit
-│   │   │   ├── RevealAnswer.tsx           ← Answer + salt reveal
+│   │   │   ├── RevealAnswer.tsx           ← Answer + secret code reveal
 │   │   │   ├── JudgeAll.tsx               ← Ritual LLM trigger
 │   │   │   ├── FinalizeWinner.tsx         ← Winner selection + payout
 │   │   │   └── SubmissionsList.tsx        ← Commit/reveal status per submission
