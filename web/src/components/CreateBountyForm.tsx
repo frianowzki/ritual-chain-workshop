@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useAccount } from "wagmi";
 import { parseEther, parseEventLogs } from "viem";
 import { contractAddress, isContractConfigured } from "@/config/contract";
@@ -37,6 +37,7 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
   const [revealDeadline, setRevealDeadline] = useState(defaultDatetime(2));
   const [reward, setReward] = useState("");
   const [createdId, setCreatedId] = useState<bigint | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const tx = useWriteTx((receipt) => {
     try {
@@ -55,7 +56,7 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
     }
   });
 
-  const validation = useMemo(() => {
+  function validate(): string | null {
     if (!title.trim()) return "Title is required.";
     if (!rubric.trim()) return "Rubric is required.";
     if (!commitDeadline) return "Pick a commit deadline.";
@@ -63,29 +64,42 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
     const commitMs = new Date(commitDeadline).getTime();
     const revealMs = new Date(revealDeadline).getTime();
     if (!Number.isFinite(commitMs) || !Number.isFinite(revealMs)) return "Invalid deadline.";
-    if (revealMs <= commitMs) return "Reveal deadline must be after commit deadline.";
     if (commitMs <= Date.now()) return "Commit deadline must be in the future.";
+    if (revealMs <= commitMs) return "Reveal deadline must be after commit deadline.";
     if (reward !== "") {
       try { parseEther(reward); } catch { return "Reward must be a valid number."; }
     }
     return null;
-  }, [title, rubric, commitDeadline, revealDeadline, reward]);
+  }
+
+  // Re-validate on every render (Date.now() stays fresh)
+  const validation = validate();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (validation || !contractAddress) return;
+    setFormError(null);
 
-    const commitMs = new Date(commitDeadline).getTime();
-    const revealMs = new Date(revealDeadline).getTime();
-    if (commitMs <= Date.now()) {
-      window.alert("Commit deadline must be in the future.");
+    // Re-validate at submit time (fresh Date.now())
+    const err = validate();
+    if (err || !contractAddress) {
+      if (err) setFormError(err);
       return;
     }
 
+    const commitMs = new Date(commitDeadline).getTime();
+    const revealMs = new Date(revealDeadline).getTime();
     const commitTs = BigInt(Math.floor(commitMs / 1000));
     const revealTs = BigInt(Math.floor(revealMs / 1000));
     const value = reward.trim() === "" ? 0n : parseEther(reward.trim());
     setCreatedId(null);
+
+    console.log("Creating bounty:", {
+      title: title.trim(),
+      commitTs: commitTs.toString(),
+      revealTs: revealTs.toString(),
+      now: Math.floor(Date.now() / 1000),
+      commitInFuture: commitTs > BigInt(Math.floor(Date.now() / 1000)),
+    });
 
     try {
       await tx.run({
@@ -162,8 +176,8 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
             />
           </Field>
 
-          {validation && (title || rubric || reward) ? (
-            <p className="text-xs text-amber-300">{validation}</p>
+          {(formError || (validation && (title || rubric || reward))) ? (
+            <p className="text-xs text-amber-300">{formError ?? validation}</p>
           ) : null}
 
           <Button
