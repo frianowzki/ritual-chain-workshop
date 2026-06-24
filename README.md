@@ -268,7 +268,7 @@ npm install
 npx hardhat compile
 npx hardhat test test/AIJudge.test.ts          # 10/10
 
-# Deploy (needs PRIVATE_KEY with RITUAL balance)
+# Deploy (needs PRIVATE_KEY with ≥0.35 RITUAL balance)
 echo "PRIVATE_KEY=0x..." > .env
 npx hardhat ignition deploy ignition/modules/AIJudge.ts --network ritual
 
