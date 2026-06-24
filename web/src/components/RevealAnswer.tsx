@@ -60,7 +60,7 @@ export function RevealAnswer({
     <Card>
       <CardHeader
         title="Reveal your answer"
-        subtitle="Use the same answer and salt you committed."
+        subtitle="Use the same answer and secret code you committed."
       />
       <CardBody>
         <form onSubmit={handleReveal} className="space-y-3">
@@ -73,11 +73,11 @@ export function RevealAnswer({
               maxLength={2000}
             />
           </Field>
-          <Field label="Salt" hint="The same salt used during commitment.">
+          <Field label="Secret Code" hint="The same secret code used during commitment.">
             <Input
               value={salt}
               onChange={(e) => setSalt(e.target.value)}
-              placeholder="my-secret-salt-123"
+              placeholder="my-secret-code-123"
             />
           </Field>
 

@@ -77,7 +77,7 @@ export function SubmitCommitment({
     <Card>
       <CardHeader
         title="Submit commitment"
-        subtitle="Your answer stays hidden until the reveal phase. Save your answer + salt!"
+        subtitle="Your answer stays hidden until the reveal phase. Save your answer + secret code!"
       />
       <CardBody>
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -90,11 +90,11 @@ export function SubmitCommitment({
               maxLength={2000}
             />
           </Field>
-          <Field label="Salt" hint="Random string. You'll need this to reveal.">
+          <Field label="Secret Code" hint="Random string. You'll need this to reveal.">
             <Input
               value={salt}
               onChange={(e) => { setSalt(e.target.value); setCommitment(null); }}
-              placeholder="my-secret-salt-123"
+              placeholder="my-secret-code-123"
             />
           </Field>
 
