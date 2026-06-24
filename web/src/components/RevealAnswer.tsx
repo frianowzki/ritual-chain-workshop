@@ -50,6 +50,7 @@ export function RevealAnswer({
         functionName: "revealAnswer",
         args: [bountyId, answer, saltHex],
         chainId: ritualChain.id,
+        gas: 200_000n,
       });
     } catch {
       /* surfaced via tx.state */

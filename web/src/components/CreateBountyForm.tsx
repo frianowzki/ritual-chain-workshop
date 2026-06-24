@@ -109,6 +109,7 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
         args: [title.trim(), rubric.trim(), commitTs, revealTs],
         value,
         chainId: ritualChain.id,
+        gas: 500_000n,
       });
     } catch {
       /* surfaced via tx.state */

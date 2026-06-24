@@ -67,6 +67,7 @@ export function SubmitCommitment({
         functionName: "submitCommitment",
         args: [bountyId, result.hash],
         chainId: ritualChain.id,
+        gas: 200_000n,
       });
     } catch {
       /* surfaced via tx.state */
