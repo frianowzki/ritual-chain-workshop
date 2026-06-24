@@ -98,11 +98,20 @@
       </div>
     </div>
 
+    <div class="section">
+      <div class="section-title">Budget</div>
+      <label>Initial budget (RITUAL)</label>
+      <input id="budget" type="number" value="0.5" min="0.01" max="0.5" step="0.01" />
+      <div class="info-box" style="margin-top: 8px; font-size: 12px;">
+        Max 0.5 RITUAL — can top up later if needed
+      </div>
+    </div>
+
     <div class="info-box">
       <strong>Estimated costs:</strong><br>
       • Deploy: ~0.05 RITUAL (one-time)<br>
       • Daily operation: ~0.005 RITUAL/day<br>
-      • 0.8 RITUAL budget ≈ 160 days of operation
+      • Budget: 0.5 RITUAL max (can top up later)
     </div>
 
     <button id="connectBtn" onclick="connect()">Connect Rabby Wallet</button>
@@ -203,11 +212,14 @@
           document.getElementById('hiveMarketMaker').value
         ];
 
-        status('Preparing deployment...\n\nConstructor args:\n' + args.join('\n'), 'info');
+        const budget = document.getElementById('budget').value;
+        const budgetWei = ethers.parseEther(budget);
+
+        status('Preparing deployment...\n\nConstructor args:\n' + args.join('\n') + '\n\nBudget: ' + budget + ' RITUAL', 'info');
 
         // Note: In production, you'd need the compiled bytecode
         // For now, this is a template showing the flow
-        status('⚠️ This is a template page.\n\nTo deploy, you need:\n1. Compile the contract with Hardhat/Foundry\n2. Get the bytecode from artifacts\n3. Use this page with the bytecode\n\nOr use the CLI:\ncd ~/hive\nforge build\nforge create src/agent/HiveSovereignAgentRitual.sol:HiveSovereignAgent \\\n  --constructor-args <scheduler> <registry> <staking> <launchPad> <governance> <treasury> <portfolio> <marketMaker> \\\n  --rpc-url https://rpc.ritualfoundation.org \\\n  --private-key <YOUR_KEY>', 'info');
+        status('⚠️ This is a template page.\n\nTo deploy, you need:\n1. Compile the contract with Hardhat/Foundry\n2. Get the bytecode from artifacts\n3. Use this page with the bytecode\n\nOr use the CLI:\ncd ~/hive\nforge build\nforge create src/agent/HiveSovereignAgentRitual.sol:HiveSovereignAgent \\\n  --constructor-args <scheduler> <registry> <staking> <launchPad> <governance> <treasury> <portfolio> <marketMaker> \\\n  --value ' + budget + 'ether \\\n  --rpc-url https://rpc.ritualfoundation.org \\\n  --private-key <YOUR_KEY>', 'info');
 
       } catch (e) {
         status('Failed: ' + e.message, 'error');
