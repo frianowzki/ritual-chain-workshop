@@ -29,5 +29,13 @@ export const ritualChainId = Number(
   process.env.NEXT_PUBLIC_RITUAL_CHAIN_ID ?? "1979",
 );
 
+// Commit-Reveal Bounty contract (deployed separately)
+const rawCRAddress = process.env.NEXT_PUBLIC_CR_CONTRACT_ADDRESS?.trim();
+export const crContractAddress: Address | undefined =
+  rawCRAddress && /^0x[0-9a-fA-F]{40}$/.test(rawCRAddress)
+    ? (rawCRAddress as Address)
+    : undefined;
+export const isCRContractConfigured = Boolean(crContractAddress);
+
 export const ritualRpcUrl =
   process.env.NEXT_PUBLIC_RITUAL_RPC_URL ?? "https://rpc.ritualfoundation.org";

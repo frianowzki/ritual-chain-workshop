@@ -3,20 +3,23 @@
 import { useCallback, useEffect, useState } from "react";
 import { WalletConnect } from "@/components/WalletConnect";
 import { CreateBountyForm } from "@/components/CreateBountyForm";
+import { CRCreateBountyForm } from "@/components/CRCreateBountyForm";
 import { LoadBountyPanel } from "@/components/LoadBountyPanel";
 import { BountyView } from "@/components/BountyView";
+import { CRBountyView } from "@/components/CRBountyView";
 import { useRecentBounties } from "@/hooks/useRecentBounties";
-import { isContractConfigured, contractAddress } from "@/config/contract";
+import { isContractConfigured, contractAddress, isCRContractConfigured, crContractAddress } from "@/config/contract";
 import { ritualChain } from "@/config/wagmi";
 import { shortenAddress } from "@/lib/format";
 import { Notice } from "@/components/ui";
 
+type Mode = "classic" | "commit-reveal";
+
 export default function Home() {
+  const [mode, setMode] = useState<Mode>("commit-reveal");
   const [selectedId, setSelectedId] = useState<bigint | null>(null);
   const { ids, add } = useRecentBounties();
 
-  // Track any opened bounty in the recent list too. `add` is a no-op when the
-  // id is already most-recent, so this won't loop.
   useEffect(() => {
     if (selectedId !== null) add(selectedId);
   }, [selectedId, add]);
@@ -28,6 +31,9 @@ export default function Home() {
     },
     [add],
   );
+
+  const activeContract = mode === "classic" ? contractAddress : crContractAddress;
+  const isActiveConfigured = mode === "classic" ? isContractConfigured : isCRContractConfigured;
 
   return (
     <div className="min-h-full">
@@ -48,7 +54,7 @@ export default function Home() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
-        {/* Hero / explanation */}
+        {/* Hero */}
         <section className="mb-6">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Crowd-judged bounties, settled by AI.
@@ -70,34 +76,74 @@ export default function Home() {
           </div>
         </section>
 
-        {!isContractConfigured && (
+        {/* Mode toggle */}
+        <section className="mb-4">
+          <div className="inline-flex rounded-lg border border-white/10 bg-zinc-900/50 p-0.5">
+            <button
+              onClick={() => { setMode("commit-reveal"); setSelectedId(null); }}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                mode === "commit-reveal"
+                  ? "bg-white/10 text-white"
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              Commit-Reveal (Private)
+            </button>
+            <button
+              onClick={() => { setMode("classic"); setSelectedId(null); }}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
+                mode === "classic"
+                  ? "bg-white/10 text-white"
+                  : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              Classic (Public)
+            </button>
+          </div>
+          {mode === "commit-reveal" && (
+            <p className="mt-2 text-xs text-zinc-500">
+              Answers are hidden until the reveal phase. Prevents copying and frontrunning.
+            </p>
+          )}
+        </section>
+
+        {!isActiveConfigured && (
           <div className="mb-6">
             <Notice tone="amber">
-              No contract address configured. Copy <code className="font-mono">.env.example</code>{" "}
-              to <code className="font-mono">.env.local</code> and set{" "}
-              <code className="font-mono">NEXT_PUBLIC_CONTRACT_ADDRESS</code> to start interacting
-              on-chain.
+              No contract address configured. Set{" "}
+              <code className="font-mono">
+                {mode === "classic" ? "NEXT_PUBLIC_CONTRACT_ADDRESS" : "NEXT_PUBLIC_CR_CONTRACT_ADDRESS"}
+              </code>{" "}
+              in <code className="font-mono">.env.local</code>.
             </Notice>
           </div>
         )}
 
         {/* Dashboard: create + load */}
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <CreateBountyForm onCreated={handleCreated} />
+          {mode === "classic" ? (
+            <CreateBountyForm onCreated={handleCreated} />
+          ) : (
+            <CRCreateBountyForm onCreated={handleCreated} />
+          )}
           <LoadBountyPanel selectedId={selectedId} onSelect={setSelectedId} recentIds={ids} />
         </section>
 
         {/* Selected bounty */}
         {selectedId !== null && (
           <section className="mt-6">
-            <BountyView bountyId={selectedId} />
+            {mode === "classic" ? (
+              <BountyView bountyId={selectedId} />
+            ) : (
+              <CRBountyView bountyId={selectedId} />
+            )}
           </section>
         )}
 
         <footer className="mt-10 border-t border-white/10 pt-4 text-xs text-zinc-600">
-          {contractAddress ? (
+          {activeContract ? (
             <>
-              Contract <span className="font-mono">{shortenAddress(contractAddress, 6)}</span> ·
+              Contract <span className="font-mono">{shortenAddress(activeContract, 6)}</span> ·
               Chain {ritualChain.id}
             </>
           ) : (
