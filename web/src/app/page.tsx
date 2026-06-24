@@ -36,7 +36,7 @@ export default function Home() {
               AI
             </div>
             <div>
-              <h1 className="text-sm font-semibold leading-tight">Privacy-Preserving AI Bounty Judge</h1>
+              <h1 className="text-sm font-semibold leading-tight">AI Bounty Judge</h1>
               <p className="text-[11px] leading-tight text-zinc-500">on {ritualChain.name}</p>
             </div>
           </div>
@@ -50,15 +50,15 @@ export default function Home() {
             Crowd-judged bounties, settled by AI.
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-            Answers stay hidden until the reveal phase. Prevents copying and frontrunning.
-            After reveal, Ritual AI ranks all submissions. The owner finalizes the winner.
+            Submit answers to a bounty. After the deadline, Ritual AI ranks all submissions. The
+            bounty owner finalizes the winner.
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs text-zinc-400">
             <span className="rounded-full bg-white/5 px-3 py-1 ring-1 ring-inset ring-white/10">
-              Commit hash first, reveal later.
+              AI review is advisory. The owner finalizes the winner.
             </span>
             <span className="rounded-full bg-white/5 px-3 py-1 ring-1 ring-inset ring-white/10">
-              AI review is advisory. The owner finalizes the winner.
+              All submissions are judged together after the deadline.
             </span>
             <span className="rounded-full bg-white/5 px-3 py-1 ring-1 ring-inset ring-white/10">
               Only one winner receives the bounty reward.
