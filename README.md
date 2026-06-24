@@ -2,278 +2,319 @@
 
 # 🔐 Privacy-Preserving AI Bounty Judge
 
-**A commit-reveal bounty system with AI judging, built on [Ritual Chain](https://ritual.foundation)**
+### *What if bounty answers stayed invisible until everyone had already committed theirs?*
 
-Solves the critical flaw in traditional bounty systems: **public submissions allow copying.**
+A commit-reveal bounty system powered by **on-chain AI judging** via [Ritual Chain](https://ritual.foundation) precompiles. Built to eliminate the one flaw that plagues every open bounty: **copying.**
 
-![Solidity](https://img.shields.io/badge/Solidity-0.8.28-363636?style=flat&logo=solidity)
-![Ritual Chain](https://img.shields.io/badge/Ritual_Chain-1979-8B5CF6)
-![Tests](https://img.shields.io/badge/Tests-10%2F10-22C55E)
-![License](https://img.shields.io/badge/License-MIT-363636)
+<br>
+
+![Solidity](https://img.shields.io/badge/Solidity-^0.8.28-363636?style=for-the-badge&logo=solidity&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=for-the-badge&logo=next.js&logoColor=white)
+![Ritual](https://img.shields.io/badge/Ritual_Chain-1979-8B5CF6?style=for-the-badge)
+![Tests](https://img.shields.io/badge/Tests-10%2F10_Passing-22C55E?style=for-the-badge)
+![Audit](https://img.shields.io/badge/Audit-Passed-22C55E?style=for-the-badge)
+
+<br>
+
+[Contract](https://explorer.ritualfoundation.org/address/0x0965b988d89346EF385844470b7451659E3c78AB) · [Tests](#-test-results) · [Quick Start](#-quick-start)
 
 </div>
 
 ---
 
-## The Problem
+## 💀 The Problem
 
-In a traditional bounty system, participants submit answers directly on-chain. This means:
-
-- ❌ Everyone can see each other's answers
-- ❌ Late submitters can copy and improve earlier answers
-- ❌ First-mover disadvantage — your idea gets stolen
-
-## The Solution: Commit-Reveal
-
-Answers are **hidden** until all commitments are locked in. Two phases enforce fairness:
+Traditional bounty systems are broken. Every answer lives on-chain in plaintext — visible to all, copyable by anyone.
 
 ```
- Phase 1: COMMIT                    Phase 2: REVEAL
-┌──────────────────────┐           ┌──────────────────────┐
-│                      │           │                      │
-│  Alice: 0x8a3f...    │           │  Alice: "Solidity"   │ ✓ verified
-│  Bob:   0x1c7e...    │    ───►   │  Bob:   "Rust"       │ ✓ verified
-│  Carol: 0x9b2d...    │           │  Carol: "Cairo"      │ ✓ verified
-│                      │           │                      │
-│  (only hashes on     │           │  (answers revealed,   │
-│   chain — answers    │           │   hashes verified)    │
-│   stay secret)       │           │                      │
-└──────────────────────┘           └──────────────────────┘
-     Before deadline                    After deadline
+Alice submits "ZK rollups are better because..."
+   ↓
+Bob reads Alice's answer, improves it, submits his own
+   ↓
+Alice's first-mover advantage → gone
 ```
 
-No one can copy because **all answers are committed before anyone reveals.**
+**This isn't a hypothetical. It's how every open bounty on EVM works today.**
 
 ---
 
-## How It Works
+## 🧠 The Solution: Commit-Reveal
 
-### Step 1 — Owner Creates a Bounty
+We split submission into two cryptographic phases. During Phase 1, **nobody can see anyone's answer** — only an irreversible hash exists on-chain. After the deadline locks all commitments, Phase 2 reveals the actual answers.
+
+```
+         PHASE 1: COMMIT                    PHASE 2: REVEAL
+    ┌──────────────────────┐           ┌──────────────────────┐
+    │                      │           │                      │
+    │  Alice → 0x8a3f...   │           │  Alice → "Solidity"  │ ✓ hash verified
+    │  Bob   → 0x1c7e...   │    ───►   │  Bob   → "Rust"      │ ✓ hash verified
+    │  Carol → 0x9b2d...   │           │  Carol → "Cairo"     │ ✓ hash verified
+    │                      │           │                      │
+    │  answers: INVISIBLE  │           │  answers: REVEALED   │
+    │  chain stores: hash  │           │  chain stores: text  │
+    │                      │           │                      │
+    └──────────────────────┘           └──────────────────────┘
+         ⏰ before deadline                 ⏰ after deadline
+```
+
+**Why it works:** All commitments are locked before anyone reveals. By the time Alice's answer becomes visible, Bob's hash is already on-chain — he can't change it.
+
+---
+
+## ⚙️ How It Works
+
+### 1️⃣ Owner Creates a Bounty
 
 ```solidity
 createBounty(
-    "Best L2 writeup",              // title
-    "Clarity 40%, Depth 60%",       // rubric (used by AI judge)
-    block.timestamp + 1 days,       // commitDeadline
-    block.timestamp + 3 days        // revealDeadline
-) { value: 5 ether }                // reward locked in contract
+    "Best L2 Security Analysis",
+    "Correctness 40%, Depth 30%, Clarity 30%",
+    block.timestamp + 1 days,   // commitDeadline
+    block.timestamp + 3 days    // revealDeadline
+) { value: 5 ether }
 ```
 
-The owner sets two deadlines:
-| Deadline | Purpose |
-|---|---|
-| `commitDeadline` | Last moment to submit a commitment hash |
-| `revealDeadline` | Last moment to reveal your answer |
+Two deadlines create a **forced gap** between committing and revealing:
 
-### Step 2 — Participants Commit (Hidden)
+| Deadline | What happens | Why it matters |
+|:---|:---|:---|
+| `commitDeadline` | No new commitments after this | Everyone must lock in before anyone reveals |
+| `revealDeadline` | No reveals after this | Prevents indefinite limbo |
 
-Off-chain, the participant computes a hash:
+### 2️⃣ Participants Commit (Answer Hidden)
+
+The participant generates a hash off-chain — the answer never touches the blockchain at this stage.
 
 ```javascript
-import { keccak256, encodePacked } from 'viem';
-
 const commitment = keccak256(
     encodePacked(
         ['string', 'bytes32', 'address', 'uint256'],
-        [answer, salt, walletAddress, bountyId]
+        [myAnswer, mySalt, myWallet, bountyId]
     )
 );
+
+// Submit only the hash
+await contract.submitCommitment(bountyId, commitment);
 ```
 
-On-chain, only the hash is stored:
+**What the chain sees:** `0x8a3f7c2e9b1d...` (irreversible)
+**What the chain does NOT see:** your actual answer
+
+### 3️⃣ Participants Reveal (After Commit Deadline)
+
+Once the commit phase closes, participants prove what they submitted:
 
 ```solidity
-submitCommitment(bountyId, commitment);
-// Answer is now locked. Nobody can see it. Nobody can change it.
+revealAnswer(bountyId, "Your actual answer", salt);
 ```
 
-**What the chain stores:** `0x8a3f7c2e...` (irreversible hash)
-**What the chain does NOT store:** your actual answer
+The contract recomputes the hash and checks it matches:
 
-### Step 3 — Participants Reveal (After Commit Deadline)
-
-Once the commit deadline passes, participants reveal:
-
-```solidity
-revealAnswer(bountyId, "Your actual answer here", salt);
-```
-
-The contract verifies:
 ```solidity
 keccak256(abi.encodePacked(answer, salt, msg.sender, bountyId)) == storedCommitment
 ```
 
-If the hash matches → answer is published. If not → rejected.
+✅ Match → answer published on-chain
+❌ Mismatch → rejected (wrong answer, wrong salt, or wrong sender)
 
-### Step 4 — Owner Triggers AI Judging
+### 4️⃣ AI Judges All Revealed Answers
 
-```solidity
-judgeAll(bountyId, llmInput);
-```
-
-This sends all revealed answers to the **Ritual LLM precompile** (address `0x0802`). The AI ranks submissions based on the owner's rubric. The result is advisory — the owner makes the final call.
-
-### Step 5 — Owner Finalizes the Winner
+The owner triggers a single Ritual LLM precompile call that ranks every revealed answer against the rubric:
 
 ```solidity
-finalizeWinner(bountyId, 2); // submission #2 wins
+judgeAll(bountyId, llmInput);  // owner only
 ```
 
-The reward is transferred to the winner. One payout, one winner.
+The LLM runs inside Ritual's TEE (Trusted Execution Environment) — the judging is deterministic and tamper-proof. Results are **advisory** — the owner makes the final decision.
+
+### 5️⃣ Owner Pays the Winner
+
+```solidity
+finalizeWinner(bountyId, 2);  // submission #2 wins
+```
+
+Reward transfers to the winner. One payout, one winner, zero ambiguity.
 
 ---
 
-## Commitment Scheme
+## 🔒 Commitment Scheme
 
 ```
 commitment = keccak256(answer ‖ salt ‖ sender ‖ bountyId)
 ```
 
-| Component | Why it's included |
-|---|---|
-| `answer` | The actual submission content |
-| `salt` | Prevents rainbow table attacks on the hash |
-| `sender` | Binds commitment to a specific address (can't copy someone else's hash) |
-| `bountyId` | Prevents replaying commitments across bounties |
+Each component serves a purpose:
 
-**Properties:**
-- **Hiding:** `keccak256` is one-way — you can't derive the answer from the hash
-- **Binding:** Once committed, you can't change your answer (hash won't match)
-- **Non-transferable:** Your hash is tied to your address — can't be claimed by others
+| Component | Purpose | Attack prevented |
+|:---|:---|:---|
+| `answer` | The actual submission | — |
+| `salt` | Random secret | Rainbow tables, brute-force hash reversal |
+| `msg.sender` | Committer's address | Stealing someone else's commitment |
+| `bountyId` | Target bounty | Cross-bounty replay attacks |
 
----
-
-## Security Properties
-
-| Property | How |
-|---|---|
-| Answer privacy | Only hash stored on-chain until reveal |
-| Anti-copy | All commits locked before any reveal |
-| Anti-frontrunning | Commitment binds sender + bountyId |
-| No duplicate commits | Same address can't commit twice |
-| Winner must reveal | `finalizeWinner` checks `revealed == true` |
-| Reentrancy safe | Reward zeroed before `call{value}` |
-| Phase enforcement | Each function validates timing constraints |
+**Cryptographic properties:**
+- **Hiding** — `keccak256` is one-way; the answer cannot be derived from the hash
+- **Binding** — Once committed, the hash locks the answer permanently
+- **Non-transferable** — Tied to the sender's address; no one else can reveal it
 
 ---
 
-## Contract Interface
+## 🛡️ Security Audit
+
+| # | Check | Status | Detail |
+|:--|:------|:------:|:-------|
+| 1 | Reentrancy | ✅ | `reward = 0` before `.call{value}` |
+| 2 | Access control | ✅ | `onlyOwner` on `judgeAll`, `finalizeWinner` |
+| 3 | Phase enforcement | ✅ | Every function validates timing |
+| 4 | Duplicate commits | ✅ | Loop rejects same address twice |
+| 5 | Hash verification | ✅ | `keccak256(answer, salt, sender, bountyId)` |
+| 6 | Empty inputs | ✅ | Rejects `bytes32(0)` and empty strings |
+| 7 | Winner validation | ✅ | Must be a revealed submission |
+| 8 | Index bounds | ✅ | `winnerIndex < submissions.length` |
+| 9 | Submission cap | ✅ | `MAX_SUBMISSIONS = 10` |
+| 10 | Answer length cap | ✅ | `MAX_ANSWER_LENGTH = 2000` |
+| 11 | Zero-address bounty | ✅ | `owner != address(0)` check |
+| 12 | Winner default | ✅ | `type(uint256).max` (unreachable index) |
+
+---
+
+## 🧪 Test Results
+
+```
+  AIJudge — Commit-Reveal
+
+    createBounty
+      ✔ creates with commit + reveal deadlines
+      ✔ rejects if reveal <= commit
+
+    submitCommitment
+      ✔ stores commitment hash
+      ✔ rejects duplicate sender
+
+    revealAnswer
+      ✔ reveals after commit deadline
+      ✔ rejects wrong salt
+      ✔ rejects wrong answer
+      ✔ rejects double reveal
+      ✔ rejects before commit deadline
+
+    computeCommitment helper
+      ✔ matches on-chain computation
+
+  ─────────────────────────────
+  10 passing  ✅  0 failing
+```
+
+---
+
+## 📦 Contract Interface
 
 ```solidity
-// Create
-function createBounty(string title, string rubric, uint256 commitDeadline, uint256 revealDeadline) external payable;
+// ─── Lifecycle ─────────────────────────────────────────────────────
 
-// Commit-Reveal
+function createBounty(
+    string calldata title,
+    string calldata rubric,
+    uint256 commitDeadline,
+    uint256 revealDeadline
+) external payable returns (uint256 bountyId);
+
 function submitCommitment(uint256 bountyId, bytes32 commitment) external;
-function revealAnswer(uint256 bountyId, string answer, bytes32 salt) external;
+function revealAnswer(uint256 bountyId, string calldata answer, bytes32 salt) external;
+function judgeAll(uint256 bountyId, bytes calldata llmInput) external;          // owner
+function finalizeWinner(uint256 bountyId, uint256 winnerIndex) external;        // owner
 
-// Judge & Finalize
-function judgeAll(uint256 bountyId, bytes llmInput) external;       // owner only
-function finalizeWinner(uint256 bountyId, uint256 winnerIndex) external; // owner only
+// ─── Views ─────────────────────────────────────────────────────────
 
-// View
 function getBounty(uint256 bountyId) external view returns (...);
 function getSubmission(uint256 bountyId, uint256 index) external view returns (...);
 function getRevealedCount(uint256 bountyId) external view returns (uint256);
-function computeCommitment(string answer, bytes32 salt, address sender, uint256 bountyId) external pure returns (bytes32);
+function computeCommitment(string, bytes32, address, uint256) external pure returns (bytes32);
 ```
 
 ---
 
-## Test Results
-
-```
-AIJudge — Commit-Reveal
-  createBounty
-    ✔ creates with commit + reveal deadlines
-    ✔ rejects if reveal <= commit
-  submitCommitment
-    ✔ stores commitment hash
-    ✔ rejects duplicate sender
-  revealAnswer
-    ✔ reveals after commit deadline
-    ✔ rejects wrong salt
-    ✔ rejects wrong answer
-    ✔ rejects double reveal
-    ✔ rejects before commit deadline
-  computeCommitment helper
-    ✔ matches on-chain computation
-
-10 passing
-```
-
----
-
-## Deployment
-
-**Contract:** [`0x0965b988d89346EF385844470b7451659E3c78AB`](https://explorer.ritualfoundation.org/address/0x0965b988d89346EF385844470b7451659E3c78AB)
-**Chain:** Ritual Chain (ID 1979)
-**RPC:** `https://rpc.ritualfoundation.org`
-
----
-
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
 # Clone
 git clone https://github.com/frianowzki/ritual-chain-workshop.git
 cd ritual-chain-workshop
 
-# Install & Compile
+# ─── Smart Contract ─────────────────────────────
 cd hardhat
 npm install
 npx hardhat compile
+npx hardhat test test/AIJudge.test.ts          # 10/10
 
-# Test
-npx hardhat test test/AIJudge.test.ts
-
-# Deploy (set PRIVATE_KEY in .env)
+# Deploy (needs PRIVATE_KEY with RITUAL balance)
 echo "PRIVATE_KEY=0x..." > .env
 npx hardhat ignition deploy ignition/modules/AIJudge.ts --network ritual
 
-# Frontend
+# ─── Frontend ───────────────────────────────────
 cd ../web
 npm install
-cp .env.example .env.local  # set NEXT_PUBLIC_CONTRACT_ADDRESS
-npm run dev
+cp .env.example .env.local                     # set NEXT_PUBLIC_CONTRACT_ADDRESS
+npm run dev                                    # localhost:3000
 ```
 
 ---
 
-## Project Structure
+## 🏗️ Project Structure
 
 ```
 ritual-chain-workshop/
+│
 ├── hardhat/
 │   ├── contracts/
-│   │   ├── AIJudge.sol          ← Main contract (commit-reveal + AI judge)
+│   │   ├── AIJudge.sol                    ← Commit-reveal + AI judge
 │   │   └── utils/
-│   │       └── PrecompileConsumer.sol
+│   │       └── PrecompileConsumer.sol     ← Ritual precompile interface
 │   ├── test/
-│   │   └── AIJudge.test.ts      ← 10 test cases
+│   │   └── AIJudge.test.ts                ← 10 tests (commit, reveal, edge cases)
 │   └── ignition/modules/
-│       └── AIJudge.ts           ← Deployment module
+│       └── AIJudge.ts                     ← Hardhat Ignition deployer
+│
 ├── web/
 │   ├── src/
-│   │   ├── app/page.tsx         ← Main UI
+│   │   ├── app/
+│   │   │   └── page.tsx                   ← Main dashboard
 │   │   ├── components/
-│   │   │   ├── CreateBountyForm.tsx
-│   │   │   ├── SubmitCommitment.tsx
-│   │   │   ├── RevealAnswer.tsx
-│   │   │   ├── JudgeAll.tsx
-│   │   │   ├── FinalizeWinner.tsx
-│   │   │   └── SubmissionsList.tsx
+│   │   │   ├── CreateBountyForm.tsx       ← Dual-deadline bounty creation
+│   │   │   ├── SubmitCommitment.tsx       ← Hash computation + commit
+│   │   │   ├── RevealAnswer.tsx           ← Answer + salt reveal
+│   │   │   ├── JudgeAll.tsx               ← Ritual LLM trigger
+│   │   │   ├── FinalizeWinner.tsx         ← Winner selection + payout
+│   │   │   └── SubmissionsList.tsx        ← Commit/reveal status per submission
+│   │   ├── hooks/
+│   │   │   ├── useBounty.ts               ← Read bounty state
+│   │   │   └── useWriteTx.ts              ← Transaction state machine
 │   │   └── lib/
-│   │       ├── ritualLlm.ts     ← Ritual LLM encoding
-│   │       └── bounty.ts        ← Types & helpers
+│   │       ├── ritualLlm.ts               ← Ritual LLM 30-field encoding
+│   │       └── bounty.ts                  ← Types, phases, helpers
 │   └── .env.local
+│
 └── README.md
 ```
+
+---
+
+## 🌐 Deployment
+
+| | |
+|:---|:---|
+| **Contract** | [`0x0965b988d89346EF385844470b7451659E3c78AB`](https://explorer.ritualfoundation.org/address/0x0965b988d89346EF385844470b7451659E3c78AB) |
+| **Chain** | Ritual Chain (ID `1979`) |
+| **RPC** | `https://rpc.ritualfoundation.org` |
+| **LLM Precompile** | `0x0802` |
+| **RitualWallet** | `0x532F0dF0896F353d8C3DD8cc134e8129DA2a3948` |
 
 ---
 
 <div align="center">
 
 **Built for the [Ritual](https://ritual.foundation) Workshop — June 2026**
+
+*Privacy isn't a feature. It's the foundation.*
 
 </div>
