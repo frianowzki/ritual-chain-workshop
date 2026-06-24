@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { WalletConnect } from "@/components/WalletConnect";
-import { CRCreateBountyForm } from "@/components/CRCreateBountyForm";
+import { CreateBountyForm } from "@/components/CreateBountyForm";
 import { LoadBountyPanel } from "@/components/LoadBountyPanel";
-import { CRBountyView } from "@/components/CRBountyView";
+import { BountyView } from "@/components/BountyView";
 import { useRecentBounties } from "@/hooks/useRecentBounties";
-import { isCRContractConfigured, crContractAddress } from "@/config/contract";
+import { isContractConfigured, contractAddress } from "@/config/contract";
 import { ritualChain } from "@/config/wagmi";
 import { shortenAddress } from "@/lib/format";
 import { Notice } from "@/components/ui";
@@ -15,6 +15,8 @@ export default function Home() {
   const [selectedId, setSelectedId] = useState<bigint | null>(null);
   const { ids, add } = useRecentBounties();
 
+  // Track any opened bounty in the recent list too. `add` is a no-op when the
+  // id is already most-recent, so this won't loop.
   useEffect(() => {
     if (selectedId !== null) add(selectedId);
   }, [selectedId, add]);
@@ -29,6 +31,7 @@ export default function Home() {
 
   return (
     <div className="min-h-full">
+      {/* Top nav */}
       <header className="sticky top-0 z-10 border-b border-white/10 bg-zinc-950/70 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex items-center gap-2">
@@ -45,6 +48,7 @@ export default function Home() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+        {/* Hero / explanation */}
         <section className="mb-6">
           <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Crowd-judged bounties, settled by AI.
@@ -66,30 +70,34 @@ export default function Home() {
           </div>
         </section>
 
-        {!isCRContractConfigured && (
+        {!isContractConfigured && (
           <div className="mb-6">
             <Notice tone="amber">
-              Set <code className="font-mono">NEXT_PUBLIC_CR_CONTRACT_ADDRESS</code> in{" "}
-              <code className="font-mono">.env.local</code> to start.
+              No contract address configured. Copy <code className="font-mono">.env.example</code>{" "}
+              to <code className="font-mono">.env.local</code> and set{" "}
+              <code className="font-mono">NEXT_PUBLIC_CONTRACT_ADDRESS</code> to start interacting
+              on-chain.
             </Notice>
           </div>
         )}
 
+        {/* Dashboard: create + load */}
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <CRCreateBountyForm onCreated={handleCreated} />
+          <CreateBountyForm onCreated={handleCreated} />
           <LoadBountyPanel selectedId={selectedId} onSelect={setSelectedId} recentIds={ids} />
         </section>
 
+        {/* Selected bounty */}
         {selectedId !== null && (
           <section className="mt-6">
-            <CRBountyView bountyId={selectedId} />
+            <BountyView bountyId={selectedId} />
           </section>
         )}
 
         <footer className="mt-10 border-t border-white/10 pt-4 text-xs text-zinc-600">
-          {crContractAddress ? (
+          {contractAddress ? (
             <>
-              Contract <span className="font-mono">{shortenAddress(crContractAddress, 6)}</span> ·
+              Contract <span className="font-mono">{shortenAddress(contractAddress, 6)}</span> ·
               Chain {ritualChain.id}
             </>
           ) : (
