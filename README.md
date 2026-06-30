@@ -23,6 +23,28 @@ A commit-reveal bounty system powered by **on-chain AI judging** via [Ritual Cha
 
 ---
 
+## 🚀 Live Demo
+
+**🔗 [frianowzki-ai-judge.vercel.app](https://frianowzki-ai-judge.vercel.app)**
+
+Connect your wallet (MetaMask) to [Ritual Chain](https://ritual.foundation) (ID `1979`) and try the full bounty workflow:
+
+| Feature | What you can do |
+|:---|:---|
+| **Dashboard** | View total bounties on-chain, live status, and quick actions |
+| **Create Bounty** | Set title, rubric, commit/reveal deadlines, and fund with RITUAL tokens |
+| **Commit** | Submit a hashed answer (keccak256) — your answer stays hidden |
+| **Reveal** | After commit deadline, reveal your answer + secret code |
+| **AI Judge** | Owner triggers Ritual LLM precompile to rank all revealed answers |
+| **Finalize** | Owner picks winner — reward transfers automatically |
+| **My Bounties** | See bounties you created with status tracking |
+| **My Submissions** | Track bounties where you committed/revealed |
+| **My Wins** | View won bounties + reward history |
+
+> **Requirements:** MetaMask wallet with [Ritual Chain](https://ritual.foundation) (Chain ID `1979`) configured. You need RITUAL tokens to create bounties or interact with the contract.
+
+---
+
 ## 💀 The Problem
 
 Traditional bounty systems are broken. Every answer lives on-chain in plaintext — visible to all, copyable by anyone.
