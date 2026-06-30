@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 import { parseEther, parseEventLogs } from "viem";
 import { contractAddress, isContractConfigured } from "@/config/contract";
+import { storeBountyReward } from "@/lib/rewardTracker";
 import { ritualChain } from "@/config/wagmi";
 import aiJudgeAbi from "@/abi/AIJudge";
 import { useWriteTx } from "@/hooks/useWriteTx";
@@ -57,6 +58,9 @@ export function CreateBountyForm({ onCreated }: { onCreated?: (bountyId: bigint)
       const id = logs[0]?.args?.bountyId;
       if (id !== undefined) {
         setCreatedId(id);
+        // Store reward in localStorage for tracking
+        const rewardValue = reward.trim() === "" ? 0n : parseEther(reward.trim());
+        if (rewardValue > 0n) storeBountyReward(Number(id), rewardValue);
         onCreated?.(id);
       }
     } catch {

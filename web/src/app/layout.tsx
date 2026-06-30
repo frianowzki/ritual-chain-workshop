@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { Sidebar } from "@/components/Sidebar";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -48,7 +49,12 @@ export default function RootLayout({
       className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-black text-white">
-        <Providers>{children}</Providers>
+        <Providers>
+          <Sidebar />
+          <main className="lg:pl-[60px] min-h-screen transition-all duration-300">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   );
