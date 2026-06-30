@@ -21,6 +21,7 @@ export const ritualChain = defineChain({
 const walletConnectProjectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID?.trim();
 
 const connectors = [
+  metaMask(),
   injected({ shimDisconnect: true }),
   ...(walletConnectProjectId ? [walletConnect({ projectId: walletConnectProjectId })] : []),
 ];

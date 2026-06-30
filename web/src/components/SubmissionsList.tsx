@@ -82,7 +82,7 @@ function SubmissionRow({
         isWinner
           ? "border-emerald-500/40 bg-emerald-500/5"
           : recommended
-            ? "border-indigo-500/40 bg-indigo-500/5"
+            ? "border-[var(--accent)]/40 bg-[var(--accent)]/5"
             : "border-white/10 bg-black/20"
       }`}
     >
@@ -103,7 +103,7 @@ function SubmissionRow({
           {isWinner ? (
             <Badge tone="green">Winner</Badge>
           ) : recommended ? (
-            <Badge tone="indigo">AI pick</Badge>
+            <Badge tone="accent">AI pick</Badge>
           ) : null}
         </div>
       </div>

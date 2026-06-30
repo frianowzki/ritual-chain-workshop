@@ -8,13 +8,15 @@ import type { TxState } from "@/hooks/useWriteTx";
 export function Card({
   children,
   className = "",
+  accent,
 }: {
   children: ReactNode;
   className?: string;
+  accent?: boolean;
 }) {
   return (
     <div
-      className={`rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur shadow-xl shadow-black/20 ${className}`}
+      className={`glass glass-hover rounded-xl transition-all duration-300 ${accent ? "accent-line glow-accent" : ""} ${className}`}
     >
       {children}
     </div>
@@ -31,13 +33,13 @@ export function CardHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 border-b border-white/10 px-5 py-4">
+    <div className="flex items-start justify-between gap-3 border-b border-white/[0.06] px-5 py-4">
       <div className="min-w-0">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-zinc-300">
+        <h2 className="font-display text-sm font-semibold uppercase tracking-[0.1em] text-[var(--accent)]">
           {title}
         </h2>
         {subtitle ? (
-          <p className="mt-0.5 text-xs text-zinc-500">{subtitle}</p>
+          <p className="mt-0.5 text-xs text-[#555]">{subtitle}</p>
         ) : null}
       </div>
       {action}
@@ -57,13 +59,13 @@ export function CardBody({
 
 /* ----------------------------------------------------------------- Badge */
 
-type Tone = "green" | "amber" | "indigo" | "zinc" | "red";
+type Tone = "green" | "amber" | "accent" | "zinc" | "red";
 
 const TONES: Record<Tone, string> = {
   green: "bg-emerald-500/15 text-emerald-300 ring-emerald-500/30",
   amber: "bg-amber-500/15 text-amber-300 ring-amber-500/30",
-  indigo: "bg-indigo-500/15 text-indigo-300 ring-indigo-500/30",
-  zinc: "bg-zinc-500/15 text-zinc-300 ring-zinc-500/30",
+  accent: "bg-[var(--accent-glow)] text-[var(--accent-light)] ring-[var(--accent)]/30",
+  zinc: "bg-white/[0.06] text-[#888] ring-white/[0.06]",
   red: "bg-red-500/15 text-red-300 ring-red-500/30",
 };
 
@@ -97,14 +99,14 @@ export function Button({
 }: ButtonProps) {
   const styles: Record<string, string> = {
     primary:
-      "bg-indigo-500 text-white hover:bg-indigo-400 disabled:bg-indigo-500/40",
+      "bg-[var(--accent)] text-white hover:bg-[var(--accent-dark)] disabled:bg-[var(--accent)]/40 shadow-[0_4px_16px_rgba(180,158,255,0.25)] hover:shadow-[0_6px_24px_rgba(180,158,255,0.3)] hover:-translate-y-[1px]",
     secondary:
-      "bg-white/10 text-zinc-100 hover:bg-white/15 disabled:bg-white/5",
-    ghost: "bg-transparent text-zinc-300 hover:bg-white/5",
+      "bg-transparent text-white border border-white/[0.06] hover:border-[var(--accent)] hover:text-[var(--accent-light)] hover:bg-[var(--accent-glow)]",
+    ghost: "bg-transparent text-[#888] hover:bg-white/[0.04]",
   };
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:text-zinc-400 ${styles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-xs font-semibold tracking-wide transition-all duration-200 disabled:cursor-not-allowed disabled:text-[#555] ${styles[variant]} ${className}`}
       {...rest}
     >
       {children}
@@ -125,17 +127,17 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-zinc-400">
+      <span className="mb-1 block text-[11px] font-medium uppercase tracking-[0.08em] text-[#555]">
         {label}
       </span>
       {children}
-      {hint ? <span className="mt-1 block text-xs text-zinc-600">{hint}</span> : null}
+      {hint ? <span className="mt-1 block text-xs text-[#444]">{hint}</span> : null}
     </label>
   );
 }
 
 const inputBase =
-  "w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-indigo-400/60 focus:outline-none focus:ring-1 focus:ring-indigo-400/40";
+  "w-full rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2 text-sm text-white placeholder:text-[#444] focus:border-[var(--accent)]/60 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]/30 transition-colors duration-200";
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`${inputBase} ${props.className ?? ""}`} />;
@@ -165,7 +167,7 @@ const TX_LABEL: Record<TxState, string> = {
 const TX_TONE: Record<TxState, Tone> = {
   idle: "zinc",
   wallet: "amber",
-  pending: "indigo",
+  pending: "accent",
   confirmed: "green",
   failed: "red",
 };
@@ -193,9 +195,9 @@ export function TxStatus({
           href={`${explorerBase}/tx/${hash}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-indigo-400 hover:text-indigo-300 underline underline-offset-2"
+          className="text-[var(--accent)] hover:text-[var(--accent-light)] underline underline-offset-2 transition-colors"
         >
-          View tx
+          View tx ↗
         </a>
       ) : null}
     </div>
@@ -217,7 +219,7 @@ export function Notice({
 }) {
   return (
     <div
-      className={`rounded-xl px-3 py-2 text-xs ring-1 ring-inset ${TONES[tone]}`}
+      className={`rounded-lg px-3 py-2 text-xs ring-1 ring-inset ${TONES[tone]}`}
     >
       {children}
     </div>
@@ -226,13 +228,19 @@ export function Notice({
 
 export function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-xl bg-black/20 px-3 py-2">
-      <div className="text-[11px] uppercase tracking-wide text-zinc-500">
+    <div className="glass rounded-lg px-3 py-2">
+      <div className="text-[10px] uppercase tracking-[0.1em] text-[#555]">
         {label}
       </div>
-      <div className="mt-0.5 text-sm font-medium text-zinc-100 break-words">
+      <div className="mt-0.5 text-sm font-medium text-white break-words font-display">
         {value}
       </div>
     </div>
   );
+}
+
+/* ---------------------------------------------------------- Skeleton */
+
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div className={`skeleton ${className}`}>&nbsp;</div>;
 }

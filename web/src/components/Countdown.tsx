@@ -24,45 +24,50 @@ export function Countdown({
   label: string;
   tone?: "green" | "amber" | "zinc";
 }) {
-  const now = useNow(1000); // tick every 1s for live countdown
+  const now = useNow(1000);
   const diff = Number(deadline) - now;
 
-  if (now === 0) return null; // SSR hydration guard
+  if (now === 0) return null;
 
-  const color =
-    tone === "green"
-      ? "text-emerald-400"
-      : tone === "amber"
-        ? "text-amber-400"
-        : "text-zinc-400";
+  const bgMap = {
+    green: "bg-emerald-500/[0.06] border-emerald-500/20",
+    amber: "bg-amber-500/[0.06] border-amber-500/20",
+    zinc: "bg-white/[0.03] border-white/[0.06]",
+  };
+
+  const dotMap = {
+    green: "bg-emerald-400",
+    amber: "bg-amber-400",
+    zinc: "bg-[#555]",
+  };
+
+  const textMap = {
+    green: "text-emerald-400",
+    amber: "text-amber-400",
+    zinc: "text-[#888]",
+  };
 
   if (diff <= 0) {
     return (
-      <div className="flex items-center gap-2 text-xs text-zinc-500">
-        <span className="inline-block h-2 w-2 rounded-full bg-zinc-600" />
-        <span>{label} — ended</span>
+      <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+        <span className="inline-block h-2 w-2 rounded-full bg-[#444]" />
+        <span className="text-xs text-[#555]">{label}</span>
+        <span className="text-xs font-mono text-[#444]">ended</span>
       </div>
     );
   }
 
-  // Pulse when < 5 minutes
   const urgent = diff < 5 * 60 * 1000;
 
   return (
-    <div className="flex items-center gap-2 text-xs">
-      <span
-        className={`inline-block h-2 w-2 rounded-full ${
-          tone === "green"
-            ? "bg-emerald-400"
-            : tone === "amber"
-              ? "bg-amber-400"
-              : "bg-zinc-400"
-        } ${urgent ? "animate-pulse" : ""}`}
-      />
-      <span className="text-zinc-400">{label}</span>
-      <span className={`font-mono font-medium ${color}`}>
-        {formatRemaining(diff)}
-      </span>
+    <div className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${bgMap[tone]} transition-colors`}>
+      <span className={`inline-block h-2.5 w-2.5 rounded-full ${dotMap[tone]} ${urgent ? "animate-pulse" : ""}`} />
+      <div className="flex flex-col">
+        <span className="text-[10px] uppercase tracking-wider text-[#555]">{label}</span>
+        <span className={`font-mono text-lg font-bold tracking-tight ${textMap[tone]}`}>
+          {formatRemaining(diff)}
+        </span>
+      </div>
     </div>
   );
 }

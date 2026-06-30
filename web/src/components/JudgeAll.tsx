@@ -100,7 +100,7 @@ export function JudgeAll({
         subtitle="Sends one Ritual LLM request ranking every revealed answer."
       />
       <CardBody className="space-y-3">
-        <Notice tone="indigo">AI review is advisory. The bounty owner finalizes the winner.</Notice>
+        <Notice tone="accent">AI review is advisory. The bounty owner finalizes the winner.</Notice>
 
         <RitualWalletPanel status={walletStatus} onDeposited={walletStatus.refetch} />
 

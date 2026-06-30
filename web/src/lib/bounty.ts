@@ -71,11 +71,11 @@ export function getBountyStatus(b: Bounty, nowMs = Date.now()): BountyStatus {
 
 export const STATUS_META: Record<
   BountyStatus,
-  { label: string; tone: "green" | "amber" | "indigo" | "zinc" }
+  { label: string; tone: "green" | "amber" | "accent" | "zinc" }
 > = {
   commit: { label: "Committing", tone: "green" },
   reveal: { label: "Revealing", tone: "amber" },
-  judged: { label: "Judged", tone: "indigo" },
+  judged: { label: "Judged", tone: "accent" },
   finalized: { label: "Finalized", tone: "zinc" },
 };
 

@@ -32,7 +32,14 @@ export function BountyDetail({
         }
         action={
           <div className="flex items-center gap-2">
-            {isOwner && <Badge tone="indigo">You own this</Badge>}
+            {isOwner && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent-glow)] px-3 py-1 text-[11px] font-semibold tracking-wide text-[var(--accent-light)] ring-1 ring-[var(--accent)]/30 glow-accent animate-pulse" style={{ animationDuration: "3s" }}>
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+                </svg>
+                Owner
+              </span>
+            )}
             <Badge tone={meta.tone}>{meta.label}</Badge>
           </div>
         }
