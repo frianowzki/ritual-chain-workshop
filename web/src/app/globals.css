@@ -242,3 +242,17 @@ input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
 .animate-gradient {
   animation: gradient 4s ease infinite;
 }
+
+/* ═══ MARQUEE (mobile badge scroll) ═══ */
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  animation: marquee 12s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}

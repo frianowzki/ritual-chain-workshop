@@ -41,7 +41,7 @@ export default function BountyDetailPage() {
 
       <ToastContainer toasts={toasts} onRemove={removeToast} />
 
-      <div className="relative z-10 px-6 py-8 max-w-5xl mx-auto">
+      <div className="relative z-10 px-6 pt-16 pb-8 lg:pt-8 max-w-5xl mx-auto">
         {/* Breadcrumb */}
         <section className={`mb-6 fi ${mounted ? 'v' : ''}`}>
           <div className="flex items-center gap-2 text-xs text-[#555]">
@@ -68,6 +68,14 @@ export default function BountyDetailPage() {
             </div>
           )}
         </section>
+        {/* Mobile footer */}
+        <footer className="mt-12 mb-6 flex flex-col items-center gap-2 lg:hidden">
+          <div className="w-8 h-px bg-white/[0.06]" />
+          <p className="text-[10px] text-[#444] tracking-wide">
+            Built by{" "}
+            <span className="text-[var(--accent)] font-medium">Frianowzki</span>
+          </p>
+        </footer>
       </div>
     </div>
   );

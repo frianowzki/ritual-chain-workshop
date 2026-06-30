@@ -47,17 +47,39 @@ export default function DashboardPage() {
             Submit answers to a bounty. After the deadline, Ritual AI ranks all submissions.
             The bounty owner finalizes the winner.
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {[
-              { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", text: "AI review is advisory" },
-              { icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z", text: "Judged after deadline" },
-              { icon: "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z", text: "One winner per bounty" },
-            ].map((item, i) => (
-              <span key={i} className={`fi ${mounted ? 'v' : ''} d${i + 1} inline-flex items-center gap-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] px-3 py-1.5 text-[11px] text-[#888]`}>
-                <svg className="w-3 h-3 text-[var(--accent)] opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
-                {item.text}
-              </span>
-            ))}
+          <div className="mt-4 overflow-hidden">
+            {/* Desktop: flex wrap */}
+            <div className="hidden sm:flex flex-wrap gap-2">
+              {[
+                { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", text: "AI review is advisory" },
+                { icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z", text: "Judged after deadline" },
+                { icon: "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z", text: "One winner per bounty" },
+              ].map((item, i) => (
+                <span key={i} className={`fi ${mounted ? 'v' : ''} d${i + 1} inline-flex items-center gap-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] px-3 py-1.5 text-[11px] text-[#888]`}>
+                  <svg className="w-3 h-3 text-[var(--accent)] opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
+                  {item.text}
+                </span>
+              ))}
+            </div>
+            {/* Mobile: marquee */}
+            <div className="sm:hidden relative">
+              <div className="flex marquee-track w-max">
+                {[...Array(2)].map((_, dup) => (
+                  <div key={dup} className="flex gap-3 pr-3">
+                    {[
+                      { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", text: "AI review is advisory" },
+                      { icon: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z", text: "Judged after deadline" },
+                      { icon: "M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z", text: "One winner per bounty" },
+                    ].map((item, i) => (
+                      <span key={`${dup}-${i}`} className="inline-flex items-center gap-1.5 rounded-md bg-white/[0.03] border border-white/[0.06] px-3 py-1.5 text-[11px] text-[#888] whitespace-nowrap">
+                        <svg className="w-3 h-3 text-[var(--accent)] opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
+                        {item.text}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 

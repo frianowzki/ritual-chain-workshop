@@ -90,7 +90,7 @@ export default function MySubmissionsPage() {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.012)_1px,transparent_1px)] bg-[size:60px_60px] mask-[radial-gradient(ellipse_at_center,black_20%,transparent_70%)]" />
       </div>
 
-      <div className="relative z-10 px-6 py-8 max-w-5xl mx-auto">
+      <div className="relative z-10 px-6 pt-16 pb-8 lg:pt-8 max-w-5xl mx-auto">
         <section className={`mb-6 fi ${mounted ? 'v' : ''}`}>
           <h1 className="font-display text-2xl font-bold tracking-tight text-white">My Submissions</h1>
           <p className="mt-1 text-sm text-[#666]">Bounties where you committed or revealed an answer</p>
@@ -119,6 +119,14 @@ export default function MySubmissionsPage() {
             )}
           </section>
         )}
+        {/* Mobile footer */}
+        <footer className="mt-12 mb-6 flex flex-col items-center gap-2 lg:hidden">
+          <div className="w-8 h-px bg-white/[0.06]" />
+          <p className="text-[10px] text-[#444] tracking-wide">
+            Built by{" "}
+            <span className="text-[var(--accent)] font-medium">Frianowzki</span>
+          </p>
+        </footer>
       </div>
     </div>
   );
