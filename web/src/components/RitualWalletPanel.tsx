@@ -1,11 +1,12 @@
 "use client";
 
-import { formatEther } from "viem";
+import { useState } from "react";
+import { formatEther, parseEther } from "viem";
 import { RITUAL_WALLET, ritualWalletAbi } from "@/abi/RitualWallet";
 import { DEPOSIT_AMOUNT, LOCK_DURATION, type RitualWalletStatus } from "@/lib/ritualWallet";
 import { ritualChain } from "@/config/wagmi";
 import { useWriteTx } from "@/hooks/useWriteTx";
-import { Badge, Button, Notice, Spinner, TxStatus } from "@/components/ui";
+import { Badge, Button, Field, Input, Notice, Spinner, TxStatus } from "@/components/ui";
 
 const explorerBase = ritualChain.blockExplorers?.default.url;
 
@@ -24,15 +25,31 @@ export function RitualWalletPanel({
   onDeposited: () => void;
 }) {
   const tx = useWriteTx(() => onDeposited());
+  const [customAmount, setCustomAmount] = useState(formatEther(DEPOSIT_AMOUNT));
+  const [amountError, setAmountError] = useState<string | null>(null);
+
+  function parseAmount(): bigint | null {
+    try {
+      const val = parseEther(customAmount);
+      if (val <= 0n) { setAmountError("Amount must be greater than 0"); return null; }
+      setAmountError(null);
+      return val;
+    } catch {
+      setAmountError("Invalid amount");
+      return null;
+    }
+  }
 
   async function handleDeposit() {
+    const amount = parseAmount();
+    if (!amount) return;
     try {
       await tx.run({
         address: RITUAL_WALLET,
         abi: ritualWalletAbi,
         functionName: "deposit",
         args: [LOCK_DURATION],
-        value: DEPOSIT_AMOUNT,
+        value: amount,
         chainId: ritualChain.id,
       });
     } catch {
@@ -88,11 +105,23 @@ export function RitualWalletPanel({
             </div>
           </dl>
           <p className="mt-2 text-amber-100/80">
-            Deposit {formatEther(DEPOSIT_AMOUNT)} RITUAL and lock for{" "}
-            {LOCK_DURATION.toLocaleString()} blocks.
+            Lock for {LOCK_DURATION.toLocaleString()} blocks. Enter amount below.
           </p>
-          <Button onClick={handleDeposit} disabled={tx.isBusy} className="mt-3 w-full">
-            {tx.isBusy ? "Depositing…" : `Deposit LLM Fees (${formatEther(DEPOSIT_AMOUNT)} RITUAL)`}
+          <div className="mt-2">
+            <Field label="Deposit amount (RITUAL)">
+              <Input
+                type="number"
+                min="0"
+                step="any"
+                value={customAmount}
+                onChange={(e) => { setCustomAmount(e.target.value); setAmountError(null); }}
+                placeholder="0.35"
+              />
+            </Field>
+            {amountError && <p className="mt-1 text-xs text-red-400">{amountError}</p>}
+          </div>
+          <Button onClick={handleDeposit} disabled={tx.isBusy || !customAmount} className="mt-3 w-full">
+            {tx.isBusy ? "Depositing…" : `Deposit LLM Fees (${customAmount} RITUAL)`}
           </Button>
           <TxStatus state={tx.state} error={tx.error} hash={tx.hash} explorerBase={explorerBase} />
         </div>
