@@ -9,7 +9,7 @@ A commit-reveal bounty system powered by **on-chain AI judging** via [Ritual Cha
 <br>
 
 ![Solidity](https://img.shields.io/badge/Solidity-^0.8.28-363636?style=for-the-badge&logo=solidity&logoColor=white)
-![Next.js](https://img.shields.io/badge/Next.js-15-000000?style=for-the-badge&logo=next.js&logoColor=white)
+![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=for-the-badge&logo=next.js&logoColor=white)
 ![Ritual](https://img.shields.io/badge/Ritual_Chain-1979-8B5CF6?style=for-the-badge)
 ![Tests](https://img.shields.io/badge/Tests-10%2F10_Passing-22C55E?style=for-the-badge)
 ![Audit](https://img.shields.io/badge/Audit-Passed-22C55E?style=for-the-badge)
@@ -274,9 +274,9 @@ npx hardhat ignition deploy ignition/modules/AIJudge.ts --network ritual
 
 # ─── Frontend ───────────────────────────────────
 cd ../web
-npm install
+pnpm install
 cp .env.example .env.local                     # set NEXT_PUBLIC_CONTRACT_ADDRESS
-npm run dev                                    # localhost:3000
+pnpm dev                                       # localhost:3000
 ```
 
 ---
@@ -297,22 +297,43 @@ ritual-chain-workshop/
 │       └── AIJudge.ts                     ← Hardhat Ignition deployer
 │
 ├── web/
+│   ├── public/
+│   │   └── favicon.svg                    ← SVG favicon
 │   ├── src/
 │   │   ├── app/
-│   │   │   └── page.tsx                   ← Main dashboard
+│   │   │   ├── page.tsx                   ← Main dashboard + stats + bounty grid
+│   │   │   ├── layout.tsx                ← OG tags, fonts, metadata
+│   │   │   └── globals.css               ← Design tokens, glass, animations
 │   │   ├── components/
+│   │   │   ├── BountyGrid.tsx             ← Recent bounties cards + inline detail
+│   │   │   ├── BountyView.tsx             ← Full bounty detail + actions
+│   │   │   ├── BountyDetail.tsx           ← Bounty info + owner badge
 │   │   │   ├── CreateBountyForm.tsx       ← Dual-deadline bounty creation
+│   │   │   ├── LoadBountyPanel.tsx        ← Load by ID + recent chips
 │   │   │   ├── SubmitCommitment.tsx       ← Hash computation + commit
 │   │   │   ├── RevealAnswer.tsx           ← Answer + secret code reveal
 │   │   │   ├── JudgeAll.tsx               ← Ritual LLM trigger
 │   │   │   ├── FinalizeWinner.tsx         ← Winner selection + payout
-│   │   │   └── SubmissionsList.tsx        ← Commit/reveal status per submission
+│   │   │   ├── SubmissionsList.tsx        ← Commit/reveal status per submission
+│   │   │   ├── AIReviewDisplay.tsx        ← AI judge results display
+│   │   │   ├── StatsDashboard.tsx         ← Total Bounties + Status (on-chain)
+│   │   │   ├── Countdown.tsx              ← Deadline countdown timers
+│   │   │   ├── WalletConnect.tsx          ← MetaMask connect + dropdown
+│   │   │   ├── Toast.tsx                  ← Slide-in notifications
+│   │   │   └── ui.tsx                     ← Card, Badge, Button, glass system
 │   │   ├── hooks/
 │   │   │   ├── useBounty.ts               ← Read bounty state
-│   │   │   └── useWriteTx.ts              ← Transaction state machine
+│   │   │   ├── useWriteTx.ts              ← Transaction state machine
+│   │   │   ├── useRecentBounties.ts       ← localStorage-backed recent IDs
+│   │   │   └── useNow.ts                  ← Live clock for countdowns
+│   │   ├── config/
+│   │   │   ├── wagmi.ts                   ← Wagmi + MetaMask connector
+│   │   │   └── contract.ts               ← Contract address config
 │   │   └── lib/
 │   │       ├── ritualLlm.ts               ← Ritual LLM 30-field encoding
-│   │       └── bounty.ts                  ← Types, phases, helpers
+│   │       ├── bounty.ts                  ← Types, phases, helpers
+│   │       ├── format.ts                  ← Address/reward/time formatting
+│   │       └── aiReview.ts               ← AI review decoder
 │   └── .env.local
 │
 └── README.md
