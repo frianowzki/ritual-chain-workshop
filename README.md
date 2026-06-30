@@ -13,10 +13,11 @@ A commit-reveal bounty system powered by **on-chain AI judging** via [Ritual Cha
 ![Ritual](https://img.shields.io/badge/Ritual_Chain-1979-8B5CF6?style=for-the-badge)
 ![Tests](https://img.shields.io/badge/Tests-10%2F10_Passing-22C55E?style=for-the-badge)
 ![Audit](https://img.shields.io/badge/Audit-Passed-22C55E?style=for-the-badge)
+![Vercel](https://img.shields.io/badge/Vercel-Deployed-000000?style=for-the-badge&logo=vercel&logoColor=white)
 
 <br>
 
-[Contract](https://explorer.ritualfoundation.org/address/0x0965b988d89346EF385844470b7451659E3c78AB) · [Tests](#-test-results) · [Quick Start](#-quick-start)
+[🚀 Live Demo](https://frianowzki-ai-judge.vercel.app) · [Contract](https://explorer.ritualfoundation.org/address/0x0965b988d89346EF385844470b7451659E3c78AB) · [Tests](#-test-results) · [Quick Start](#-quick-start)
 
 </div>
 
@@ -301,10 +302,40 @@ ritual-chain-workshop/
 │   │   └── favicon.svg                    ← SVG favicon
 │   ├── src/
 │   │   ├── app/
-│   │   │   ├── page.tsx                   ← Main dashboard + stats + bounty grid
-│   │   │   ├── layout.tsx                ← OG tags, fonts, metadata
-│   │   │   └── globals.css               ← Design tokens, glass, animations
+│   │   │   ├── page.tsx                   ← Redirects to /dashboard
+│   │   │   ├── layout.tsx                ← OG tags, fonts, sidebar layout
+│   │   │   ├── globals.css               ← Design tokens, glass, animations
+│   │   │   └── dashboard/
+│   │   │       └── page.tsx              ← Hero, stats, live bounties, quick actions
+│   │   │   └── bounties/
+│   │   │       └── page.tsx              ← Browse all bounties
+│   │   │   └── bounties/
+│   │   │       └── create/
+│   │   │           └── page.tsx          ← Create bounty form
+│   │   │   └── bounties/
+│   │   │       └── [id]/
+│   │   │           └── page.tsx          ← Bounty detail page
+│   │   │   └── activity/
+│   │   │       ├── page.tsx              ← Redirects to /activity/bounties
+│   │   │       └── bounties/
+│   │   │           └── page.tsx          ← My Bounties
+│   │   │       └── submissions/
+│   │   │           └── page.tsx          ← My Submissions
+│   │   │       └── wins/
+│   │   │           └── page.tsx          ← My Wins + rewards
+│   │   │   └── network/
+│   │   │       ├── page.tsx              ← Network status
+│   │   │       └── contract/
+│   │   │           └── page.tsx          ← Contract info
+│   │   │   └── settings/
+│   │   │       └── page.tsx              ← Settings
 │   │   ├── components/
+│   │   │   ├── Sidebar.tsx                ← Navigation sidebar (manual toggle)
+│   │   │   ├── SidebarItem.tsx            ← Nav item with SVG icon
+│   │   │   ├── SidebarSection.tsx         ← Section divider
+│   │   │   ├── SidebarRitualWallet.tsx    ← Fund panel (balance + deposit)
+│   │   │   ├── StatsDashboard.tsx         ← Total Bounties + Status + Live Bounties
+│   │   │   ├── LiveBountiesCard.tsx       ← Active bounties grid
 │   │   │   ├── BountyGrid.tsx             ← Recent bounties cards + inline detail
 │   │   │   ├── BountyView.tsx             ← Full bounty detail + actions
 │   │   │   ├── BountyDetail.tsx           ← Bounty info + owner badge
@@ -316,7 +347,6 @@ ritual-chain-workshop/
 │   │   │   ├── FinalizeWinner.tsx         ← Winner selection + payout
 │   │   │   ├── SubmissionsList.tsx        ← Commit/reveal status per submission
 │   │   │   ├── AIReviewDisplay.tsx        ← AI judge results display
-│   │   │   ├── StatsDashboard.tsx         ← Total Bounties + Status (on-chain)
 │   │   │   ├── Countdown.tsx              ← Deadline countdown timers
 │   │   │   ├── WalletConnect.tsx          ← MetaMask connect + dropdown
 │   │   │   ├── Toast.tsx                  ← Slide-in notifications
@@ -345,6 +375,7 @@ ritual-chain-workshop/
 
 | | |
 |:---|:---|
+| **Frontend** | [🚀 frianowzki-ai-judge.vercel.app](https://frianowzki-ai-judge.vercel.app) |
 | **Contract** | [`0x0965b988d89346EF385844470b7451659E3c78AB`](https://explorer.ritualfoundation.org/address/0x0965b988d89346EF385844470b7451659E3c78AB) |
 | **Chain** | Ritual Chain (ID `1979`) |
 | **RPC** | `https://rpc.ritualfoundation.org` |
