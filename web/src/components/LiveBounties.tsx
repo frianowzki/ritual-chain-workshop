@@ -140,15 +140,6 @@ export function LiveBounties() {
             </div>
             <p className="text-sm text-[#666] font-medium">No live bounties right now</p>
             <p className="text-[11px] text-[#444] mt-1.5">Check back soon or create one yourself</p>
-            <Link
-              href="/bounties/create"
-              className="mt-4 inline-flex items-center gap-1.5 text-[11px] text-[var(--accent)] hover:text-[var(--accent-light)] transition-colors"
-            >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-              </svg>
-              Create a bounty
-            </Link>
           </CardBody>
         </Card>
       )}
